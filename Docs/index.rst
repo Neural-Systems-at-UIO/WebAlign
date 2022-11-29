@@ -7,9 +7,9 @@ WebAlign: Web application for 2D image registration to 3D atlas
 
    Introduction
    Installation
-   imageprepro
    support
-   publications
+   
+  
  
    
    
@@ -22,7 +22,7 @@ WebAlign: Web application for 2D image registration to 3D atlas
    :numbered:
    :maxdepth: 3
    
-   anchoring
+   start
    landmarks
    angles
    adjust
