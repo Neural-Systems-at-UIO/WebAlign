@@ -1,6 +1,6 @@
 **Opening a sample dataset**
 -------------------------------
-A Demo dataset is present in the QUINT-DEmo collab:https://wiki.ebrains.eu/bin/view/Collabs/quint-demo/
+A Demo dataset is present in the QUINT-DEmo collab: https://wiki.ebrains.eu/bin/view/Collabs/quint-demo/
 
 Load the file by clicking on the file:demo_mouse_data_start.waln
 
@@ -26,7 +26,7 @@ Example: tg2345_MMSH_s001_segmentation.png
 
 - type or paste the URL of the dataset folder containing the images. Note! the name of the collab supports only hyphens.The URL can be fetched from the    Bucket with right-click and choose "Gey API url".
 
-E.g. https://data-proxy.ebrains.eu/api/v1/public/buckets/name-of-bucket?prefix=name_of_bucket
+E.g. "https[]://data-proxy.ebrains.eu/api/v1/public/buckets/name-of-bucket?prefix=name_of_bucket"
 
 - you can filter the data using RegEx expressions. E.g. name_of_the_data_folder\/.*\.jpg$ (for filtering jpeg files only).
 
@@ -34,16 +34,18 @@ E.g. https://data-proxy.ebrains.eu/api/v1/public/buckets/name-of-bucket?prefix=n
 
 - allow the image service to access your bucket
 
-- Store your results: Choose "Use current collab".  If you have a lot of data and in order not to overload the Bucket of your current collab, you can choose the option "create a new collab". Give a name to your Bucket as well as a name for the collab (bucket slug) (see this illustration for more info).
+- Store your results: Choose "Use current collab".  If you have a lot of data and in order not to overload the Bucket of your current collab, you can choose the option "create a new collab". Give a name to your Bucket as well as a name for the collab.
 
 - Customize your ingestion:
 
        - give a name to your ingestion in the "description of ingestion" field.
 
-       - Individual 2D files can be ingested into two formats: Deep zoom format(DZI) or Neuroglancer (NG); whereas 3D volumes (nifti format) are only ingested into NG format.
+       - Individual 2D files can be ingested into two formats: Deep zoom format(DZI) or Neuroglancer (NG); whereas 3D volumes (nifti format) are only ingested into NG format. Consult image service documentation for more details.
 
        - For obtaining chunks in DZI format  (compatible with WebAlign), choose "2D" and "not stack of Images". 
-       - Click "preview" in order to preview your task
+       - Click "preview" in order to preview your task.
+       It could look like this:
+       {"definition":{"type":"ingest","url":"*https[]://data-proxy.ebrains.eu/api/v1/public/buckets/quint-demo?prefix=quint-demo*","two_d":true,"runtime_limit":"12h","queue":"normal","ingestion_parameters":{"is_stack":false,"type":"image","data_type":"uint8","output_format":"jpg"}},"description":"test"}
 
 *2b. Click "create task" to launch your ingestion*
 
