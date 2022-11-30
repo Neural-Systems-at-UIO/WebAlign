@@ -66,7 +66,7 @@ When "successful", your chunks have been created.
 In case of problem contact support at support@ebrains.eu
 
 
-**Opening of your own dataset**
+**Opening of your own dataset in WebAlign**
 -----------------------------------
 
 After you have uploaded your images to the collab bucket and ingested your images with the Image service app, you will find generated DZI chunks in the bucket.
