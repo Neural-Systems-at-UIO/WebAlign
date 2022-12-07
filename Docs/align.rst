@@ -41,9 +41,11 @@ The panel can be resized towards the left (common border with Control Panel) and
 
 5. Go through all sections and refine position and cutting angles.
 
-  Note! When jumping from one section to the other, wait a few seconds for the image to load
+.. note::
+When jumping from one section to the other, wait a few seconds for the image to load
 
-  Note! The "restore" button allows you to go back to the saved position if necessary
+.. note::
+The "restore" button allows you to go back to the saved position if necessary
 
 6. Save your results in the descriptor file (json) by pressing "Save to bucket".
 
