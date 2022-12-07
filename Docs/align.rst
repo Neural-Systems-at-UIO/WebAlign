@@ -31,7 +31,7 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 |Rotate around marker          |PgUp/PgDown	         |Marker becomes a cross with a surrounding arc, mouse drag rotates the cut  |  		
 +------------------------------+---------------------+---------------------------------------------------------------------------+
 |In plane adjust               |Click + drag         |If there is no marker, or the marker is a cross, mouse drag slides the cut |  	
-|  	                           |  	                 |in its plane (translation)                                                 |  		
+|  	                           |  	                 |in its plane (translation)                                                  |  		
 +------------------------------+---------------------+---------------------------------------------------------------------------+
 
 .. note::
