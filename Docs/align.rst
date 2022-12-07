@@ -34,8 +34,8 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 |  	                           |  	                 |in its plane (translation)                                                 |  		
 +------------------------------+---------------------+---------------------------------------------------------------------------+
 
-
-Note! The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip).
+.. note::
+The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip).
 
 4. Save the position by pressing "Store". The registration is copied to the remaining slides to help with scaling (visible also in the filmstrip)
 
