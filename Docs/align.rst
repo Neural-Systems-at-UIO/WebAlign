@@ -35,7 +35,7 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 
 6. Save your results in the descriptor file (.waln) by pressing "Save to bucket".
 
-7. When the registration is finished, you can export your descriptor files ( .seg files used for analysis in the QUINT workflow) by pressing "export overlays". All results are zipped and stored in the bucket. The result file name will be the same as the one chosen to create the registration.
+7. When the registration is finished, you can export your descriptor files ( .seg files used for analysis in the QUINT workflow) by pressing "export overlays". All results are zipped and stored in the bucket. The result file name will be the same as the one chosen to create the registration, e.g. "my-registration.zip".
 
 **Short keys**
 ----------------
