@@ -10,7 +10,7 @@ In this ReadtheDocs, go to the next page for illustrated alignment instructions.
 You can see the result of a finished anchoring by choosing the file: "demo_mouse_data.waln"
 
 
-**Ingest your images with the Image Service app**
+**Work with your own images**
 ----------------------------------------------------
 **1. Prepare your images before upload by naming them according this naming convention:**
 
@@ -26,7 +26,8 @@ Example: tg2345_MMSH_s001_segmentation.png
 
 - type or paste the URL of the dataset folder containing the images. Note! the name of the collab supports only hyphens.The URL can be fetched from the    Bucket with right-click and choose "Gey API url".
 
-E.g. "https[]://data-proxy.ebrains.eu/api/v1/public/buckets/name-of-bucket?prefix=name_of_bucket"
+:note::
+ E.g. "https[]://data-proxy.ebrains.eu/api/v1/public/buckets/name-of-bucket?prefix=name_of_bucket"
 
 - you can filter the data using RegEx expressions. E.g. name_of_the_data_folder\/.*\.jpg$ (for filtering jpeg files only).
 
