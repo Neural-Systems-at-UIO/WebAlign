@@ -3,7 +3,7 @@
 
 The main window shows the selected image with the atlas overlay.
 
-.. image:: images/media/image1.png
+.. image:: images/image1.png
    :width: 6.3in
    :height: 4.04916in 
 
