@@ -2,7 +2,7 @@
 -------------------------------
 A Demo dataset is present in the QUINT-Demo collab: https://wiki.ebrains.eu/bin/view/Collabs/quint-demo/
 
-Load the file by clicking on the file:demo_mouse_data_start.waln
+Load the file by clicking on the file: "demo_mouse_data_start.waln"
 
 Instructions about the operations are found both under "Documentation" on the upper right and inside the application by pressing the question mark.
 In this ReadtheDocs, go to the next page for illustrated alignment instructions.
