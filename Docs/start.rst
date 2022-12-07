@@ -82,6 +82,7 @@ These DZI files are used by WebAlign.
 4. WebAlign will search for DZI files and list those found.
 
 5. Press "create". The main window will now display WebAlign. This step can take some time.
+Your file is saved in the Bucket as a .waln file
 
 .. image:: images/media/image2.png
   :width: 6.30139in
