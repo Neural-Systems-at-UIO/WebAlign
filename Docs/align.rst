@@ -19,41 +19,42 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 **Short keys**
 ----------------
 
-+------------------------------+---------------------+------------------------------------------------------+
-|    **To do this**            |  **Press**          |    **Description**                                   |
-+==============================+=====================+======================================================+
-|    Place marker              |  Space bar          |Markers are the anchor points of most transformations |
-|                              |                     |(stretch and rotate)                                  |
-+------------------------------+---------------------+------------------------------------------------------+		
-|    Remove marker             | Esc                 |Removes a previously placed marker                    |  
-+------------------------------+---------------------+------------------------------------------------------+		
-|Horizontal stretch from marker|Left/Right arrow keys|Marker becomes a vertical line                        | 
-|                              |                     |mouse drag horizontally resizes the cut               |
-+------------------------------+---------------------+------------------------------------------------------+	
-|Vertical stretch from marker  |Up/Down arrow keys   |Marker becomes a horizontal line                      | 
-|                              |                     |mouse drag vertically resizes the cut                 |
-+------------------------------+---------------------+------------------------------------------------------+	
-|  Rotate around marker        |PgUp/PgDown	         |Marker becomes a cross with a surrounding arc         |
-|                              |                     |mouse drag rotates the cut                            |  		
-+------------------------------+---------------------+------------------------------------------------------+
-|In plane adjust               |Click + drag         |If there is no marker, or the marker is a cross       |  	
+
++------------------------------+--------------------+------------------------------------------------------+
+|    **To do this**            |  **Press**         |    **Description**                                   |
++==============================+====================+======================================================+
+|    Place marker              | Space bar          |Markers are the anchor points of most transformations |
+|                              |                    |(stretch and rotate)                                  |
++------------------------------+--------------------+------------------------------------------------------+		
+|    Remove marker             | Esc                |Removes a previously placed marker                    |  
++------------------------------+--------------------+------------------------------------------------------+		
+|Horizontal stretch from marker| Left/Right         |Marker becomes a vertical line                        | 
+|                              | arrow keys         |mouse drag horizontally resizes the cut               |
++------------------------------+--------------------+------------------------------------------------------+	
+|Vertical stretch from marker  | Up/Down arrow keys |Marker becomes a horizontal line                      | 
+|                              |                    |mouse drag vertically resizes the cut                 |
++------------------------------+--------------------+------------------------------------------------------+	
+|  Rotate around marker        | PgUp/PgDown	       |Marker becomes a cross with a surrounding arc         |
+|                              |                    |mouse drag rotates the cut                            |  		
++------------------------------+--------------------+------------------------------------------------------+
+|In plane adjust               | Click + drag       |If there is no marker, or the marker is a cross       |  	
 |  	                           |  	                 |mouse drag slides the cut                             |  
 |  	                           |  	                 |in its plane (translation)                            |  
-+------------------------------+---------------------+------------------------------------------------------+
++------------------------------+--------------------+------------------------------------------------------+
 
 
 .. note::
-The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip).
+   The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip).
 
 4. Save the position by pressing "Store". The registration is copied to the remaining slides to help with scaling (visible also in the filmstrip)
 
 5. Go through all sections and refine position and cutting angles.
 
 .. note::
-When jumping from one section to the other, wait a few seconds for the image to load
+   When jumping from one section to the other, wait a few seconds for the image to load
 
 .. note::
-The "restore" button allows you to go back to the saved position if necessary
+   The "restore" button allows you to go back to the saved position if necessary
 
 6. Save your results in the descriptor file (json) by pressing "Save to bucket".
 
