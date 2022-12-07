@@ -91,7 +91,7 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 
 **Filmstrip**
 --------------
-Drag horizontally to see series, click on a section in order to load it into the main view The top border of the filmstrip can be dragged vertically, allowing to resize the panel and the main view
+Drag horizontally to see series, click on a section in order to load it into the main view. The top border of the filmstrip can be dragged vertically, allowing to resize the panel and the main view
 
 **Navigation panel**
 ----------------------
