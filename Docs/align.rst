@@ -3,6 +3,11 @@
 
 The main window shows the selected image with the atlas overlay.
 
+.. image:: images/media/image1.png
+   :width: 6.3in
+   :height: 4.04916in 
+
+
 If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel below)
 
 
