@@ -7,7 +7,7 @@ Load the file by clicking on the file:demo_mouse_data_start.waln
 Instructions about the operations are found both under "Documentation" on the upper right and inside the application by pressing the question mark.
 In this ReadtheDocs, go to the next page for illustrated alignment instructions.
 
-You can see the result of a finished anchoring by choosing the file: demo_mouse_data.waln
+You can see the result of a finished anchoring by choosing the file: "demo_mouse_data.waln"
 
 
 **Ingest your images with the Image Service app**
