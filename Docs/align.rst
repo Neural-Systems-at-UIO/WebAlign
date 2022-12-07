@@ -8,8 +8,8 @@ The main window shows the selected image with the atlas overlay.
    :height: 4.04916in 
 
 
-If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel below)
-
+.. note::
+ If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel below)
 
 1. Move the atlas to the approximate position of your section using the yellow dots in the three small windows from the navigation panel.
 
