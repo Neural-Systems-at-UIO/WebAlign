@@ -63,18 +63,31 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 
 **Control panel**
 ------------------------
-Button	Function
-Store 	Store the current alignment and propagate to unaligned sections (Note this does not save the series to your bucket)
-Restore 	Reset the current alignment to the last stored position
-Clear 	Reset the current alignment to the default position
-Overlay Slider 	Opacity of the atlas overlay, when fully opaque, it becomes an outline
-Overlay color 	The outline color
-Filmstrip slider and color	The above settings, applied to the filmstrip
-Save to bucket	Save the series to your bucket (and overwrite the existing file)
-Export overlays	Generates a series of .flat files (for Nutil or similar utility), and stores them into a .zip file in the bucket (re-using the name of the series descriptor, e.g. series13.json will export series13.zip)
- 
-
-The right border of the control panel can be dragged horizontally, allowing to resize the panel and the main view
+.. list-table:: 
+   :widths: 25 50
+   :header-rows: 1
+   
+   * - **Button**   
+     - **Function**  
+   * -   Store     
+     -   Store the current alignment and propagate to unaligned sections (Note this does not save the series to your bucket)
+   * -   Restore 
+     -   Reset the current alignment to the last stored position
+   * -   Clear
+     -   Reset the current alignment to the default position
+   * -   Overlay Slider
+     -   Opacity of the atlas overlay, when fully opaque, it becomes an outline
+   * -   Overlay color
+     -   The outline color
+   * -   Filmstrip slider and color
+     -   The above settings, applied to the filmstrip
+   * -   Save to bucket
+     -   Save the series to your bucket (and overwrite the existing file)
+   * -   Export overlays
+     -   Generates a series of .flat files (for Nutil or similar utility), and stores them into a .zip file in the bucket (re-using the name of the series descriptor, e.g. series13.json will export series13.zip)
+     
+.. note:: 
+ The right border of the control panel can be dragged horizontally, allowing to resize the panel and the main view
 
 **Filmstrip**
 --------------
