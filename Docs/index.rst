@@ -24,8 +24,6 @@ WebAlign: Web application for 2D image registration to 3D atlas
    
    start
    align
-   coordinates
-   export
    FAQ
    
    
