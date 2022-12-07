@@ -17,13 +17,22 @@ If there is no marker, or the marker is a cross, mouse drag slides the cut in it
 
 **Short keys**
 
-To do this	Press	Description
-Place marker	Space bar	Markers are the anchor points of most transformations (stretch and rotate).
-Remove marker	Esc	Removes a previously placed marker.
-Horizontal stretch from marker 	Left/Right arrow keys	Marker becomes a vertical line, and mouse drag horizontally resizes the cut.
-Vertical stretch from marker 	Up/Down  arrow keys	Marker becomes a horizontal line, and mouse drag vertically resizes the cut
-Rotate around marker	PgUp/PgDown	Marker becomes a cross with a surrounding arc, and mouse drag rotates the cut.
-In plane adjust 	Click + drag	If there is no marker, or the marker is a cross, mouse drag slides the cut in its plane (translation).
++------------------------------+---------------------+---------------------------------------------------------------------------+
+|    **To do this**            |  **Press**          |    **Description**                                                        |
++==============================+=====================+===========================================================================+
+|    Place marker              |  Space bar          |Markers are the anchor points of most transformations (stretch and rotate) |                          
++------------------------------+---------------------+---------------------------------------------------------------------------+		
+|    Remove marker             | Esc                 |Removes a previously placed marker                                         |  
++------------------------------+---------------------+---------------------------------------------------------------------------+		
+|Horizontal stretch from marker|Left/Right arrow keys|Marker becomes a vertical line, and mouse drag horizontally resizes the cut| 
++------------------------------+---------------------+---------------------------------------------------------------------------+	
+|Vertical stretch from marker  |Up/Down arrow keys   |Marker becomes a horizontal line, and mouse drag vertically resizes the cut| 
++------------------------------+---------------------+---------------------------------------------------------------------------+	
+|Rotate around marker          |PgUp/PgDown	         |Marker becomes a cross with a surrounding arc, mouse drag rotates the cut  |  		
++------------------------------+---------------------+---------------------------------------------------------------------------+
+|In plane adjust               |Click + drag         |If there is no marker, or the marker is a cross, mouse drag slides the cut |  	
+|  	                           |  	                 |in its plane (translation)                                                 |  		
++------------------------------+---------------------+---------------------------------------------------------------------------+
 
 
 Note! The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip).
