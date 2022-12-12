@@ -4,7 +4,7 @@
 The main window shows the selected image with the atlas overlay.
 
 .. image:: images/image1.png
-   :width: 6.3in
+   :width: 7.3in
    :height: 4.04916in 
 
 
