@@ -5,5 +5,5 @@ Different experimental datasets registered to the same reference atlas allows yo
 The output of WebAlign can be used for analysis in the online QUINT workflow. 
 
 .. image:: images/image1.png
-   :width: 6.3in
+   :width: 7.3in
    :height: 4.04916in 
