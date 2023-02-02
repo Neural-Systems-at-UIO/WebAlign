@@ -18,7 +18,7 @@ Gergely Csucs
 
 # Licence
 - Main component: 
-- Source code: 
+- Source code: MIT License
 
 # Contact us
 Report issues here on github or email: support@ebrains.eu
