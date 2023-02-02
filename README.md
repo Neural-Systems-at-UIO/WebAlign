@@ -8,7 +8,7 @@ A key feature of the tool is its ability to generate user defined cut planes thr
 WebAlign is developed by the Neural Systems Laboratory at the Institute of Basic Medical Sciences, University of Oslo, Norway. WebAlign  was developed with support from the EBRAINS infrastructure, and funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).
 
 # Documentation
-
+https://webalign.readthedocs.io/en/latest/index.html
 
 # Developper
 Gergely Csucs
