@@ -17,7 +17,6 @@ Gergely Csucs
  Maja A Puchades, Jan G Bjaalie. 
 
 # Licence
-- Main component: 
 - Source code: MIT License
 
 # Contact us
