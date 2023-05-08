@@ -101,7 +101,7 @@ and open the template in the editor.
                 margin-top: 5px;
             }
             /*input[type=range]{*/
-                /*width:100px;*/
+            /*width:100px;*/
             /*}*/
             #help{
                 position: absolute;
@@ -127,151 +127,151 @@ and open the template in the editor.
         <script src="segrle.js"></script>
         <script src="dppick.js"></script>
         <script>
-            let args=JSON.parse(decodeURIComponent(location.search.substring(1)));
-            const bucket=args["clb-collab-id"];
-            const token=args.token;
-            let filename=args.filename;
-            let atlas={xdim:1,ydim:1,zdim:1};
+            let args = JSON.parse(decodeURIComponent(location.search.substring(1)));
+            const bucket = args["clb-collab-id"];
+            const token = args.token;
+            let filename = args.filename;
+            async function dpurlget(bucketfile) {
+                return fetch(
+                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketfile}?redirect=false`,
+                        {headers: {authorization: `Bearer ${token}`}}).then(response => response.json());
+            }
+
+            let atlas = {xdim: 1, ydim: 1, zdim: 1};
             let series;
-            let images=[];
-            let fsw=0;
-            let ready=false;
+            let images = [];
+            let fsw = 0;
+            let ready = false;
             let gray;
-            async function startup(){
-                let start=Date.now();
+            async function startup() {
+                let start = Date.now();
                 popup("Loading data");
-                window.addEventListener("resize",resize);
+                window.addEventListener("resize", resize);
                 resize();
-                let url=await fetch(
-                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${filename}?redirect=false`,{
-                            headers:{
-                                accept:"application/json",
-                                authorization:`Bearer ${token}`
-                            }
-                        }
-                    ).then(response=>response.json()).then(json=>json.url);
-                series=await fetch(url).then(response=>response.json());
-                if(series.hasOwnProperty("mode"))
-                    document.getElementById("mode").selectedIndex=series.mode;
-                console.log(Date.now()-start,"Got series");
-                /*let*/ atlas=new Promise(resolve=>new Worker("getlas.js?"+series.atlas)
-                        .onmessage=event=>{
-                            if(event.data.hasOwnProperty("blob"))
-                                resolve(event.data);
-                            else
-                                popup(event.data);
-                });
-                new Worker("getgray.js?"+series.atlas).onmessage=event=>{
-                    gray=new Uint8Array(event.data);
-                    document.getElementById("modality").disabled=false;
+                const url = await dpurlget(bucket + "/" + filename).then(json => json.url);
+                series = await fetch(url + "?" + Date.now()).then(response => response.json());
+                if (series.hasOwnProperty("mode"))
+                    document.getElementById("mode").selectedIndex = series.mode;
+                console.log(Date.now() - start, "Got series");
+                /*let*/ atlas = new Promise(resolve => new Worker("getlas.js?" + series.atlas)
+                            .onmessage = event => {
+                                if (event.data.hasOwnProperty("blob"))
+                                    resolve(event.data);
+                                else
+                                    popup(event.data);
+                            });
+                new Worker("getgray.js?" + series.atlas).onmessage = event => {
+                    gray = new Uint8Array(event.data);
+                    document.getElementById("modality").disabled = false;
                 };
 //                let worker=new Worker("getlas.js?"+args.get("atlas"));
 
-                for(let section of series.sections){
+                for (let section of series.sections) {
                     // {"name":"hbp-00167-641_2001_2561_s001.tif","width":22500,"height":17500,"tilesize":254,"overlap":1,"format":"png"}
-                    let fullname=section.filename;
-                    let pos=fullname.lastIndexOf(".");
-                    let name=fullname.substring(0,pos);
+                    let fullname = section.filename;
+                    let pos = fullname.lastIndexOf(".");
+                    let name = fullname.substring(0, pos);
 
-                    let image={
-                        ...section,base:series.bucket+"/"+fullname+"/"+name+"_files/",flat:name+".flat"
+                    let image = {
+                        ...section, base: series.bucket + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
                     };
-                    
-                    let w=image.width;
-                    let h=image.height;
-                    
-                    image.fsx=fsw;
-                    if(w>h){
-                        image.fsw=128;
-                        image.fsh=h*128/w;
-                        image.fsy=(128-image.fsh)/2;
-                    }else{
-                        image.fsh=128;
-                        image.fsy=0;
-                        image.fsw=w*128/h;
+
+                    let w = image.width;
+                    let h = image.height;
+
+                    image.fsx = fsw;
+                    if (w > h) {
+                        image.fsw = 128;
+                        image.fsh = h * 128 / w;
+                        image.fsy = (128 - image.fsh) / 2;
+                    } else {
+                        image.fsh = 128;
+                        image.fsy = 0;
+                        image.fsw = w * 128 / h;
                     }
-                    fsw+=30+image.fsw;
-                    
-                    let maxlevel=0;
-                    while(w>1 || h>1){
-                        w=(w+1)>>1;
-                        h=(h+1)>>1;
+                    fsw += 30 + image.fsw;
+
+                    let maxlevel = 0;
+                    while (w > 1 || h > 1) {
+                        w = (w + 1) >> 1;
+                        h = (h + 1) >> 1;
                         maxlevel++;
                     }
-                    image.maxlevel=maxlevel;
+                    image.maxlevel = maxlevel;
                     images.push(image);
                 }
-                fsw-=30;
-                console.log(Date.now()-start,"Got DZIs");
-                atlas=await atlas;
-                atlas.blob=atlas.encoding===1?new Uint8Array(atlas.blob):new Uint16Array(atlas.blob);
-                console.log(Date.now()-start,"Got atlas");
+                fsw -= 30;
+                console.log(Date.now() - start, "Got DZIs");
+                atlas = await atlas;
+                atlas.blob = atlas.encoding === 1 ? new Uint8Array(atlas.blob) : new Uint16Array(atlas.blob);
+                console.log(Date.now() - start, "Got atlas");
                 console.log(atlas);
-                document.getElementById("atlas").innerText=atlas.name;
-                
-                for(let image of images){
-                    if(image.hasOwnProperty("ouv"))
-                        image.anchored=true;
-                    image.snr=parseInt(image.filename.match(/_s(\d+)/)[1]);
+                document.getElementById("atlas").innerText = atlas.name;
+
+                for (let image of images) {
+                    if (image.hasOwnProperty("ouv"))
+                        image.anchored = true;
+                    image.snr = parseInt(image.filename.match(/_s(\d+)/)[1]);
                 }
                 propagate();
-                
+
                 //stripidx=Math.min(images.length-1,(images.length>>1)+1);
-                if(!series.hasOwnProperty("current"))
-                    series.current=images.length>>1;
+                if (!series.hasOwnProperty("current"))
+                    series.current = images.length >> 1;
                 activateslice(series.current);
-                strippos=images[stripidx].fsx-(window.innerWidth-images[stripidx].fsw)/2;
+                strippos = images[stripidx].fsx - (window.innerWidth - images[stripidx].fsw) / 2;
                 console.log(images[stripidx]);
                 console.log(strippos);
-                
-                ready=true;
+
+                ready = true;
                 resize();
                 console.log(images);
                 cover();
             }
-            let ctrlw=300;
-            let fstrip=128;
+            let ctrlw = 300;
+            let fstrip = 128;
             let width;
             let mainh;
             let mainw;
-            function resize(){
-                let ctrl=document.getElementById("controls");
-                let hsiz=document.getElementById("hsiz");
-                let main=document.getElementById("main");
-                let hsep=document.getElementById("hsep");
-                let navi=document.getElementById("navi");
-                let vsiz=document.getElementById("vsiz");
-                let fstr=document.getElementById("filmstrip");
-                
-                let maincnv=document.getElementById("maincnv");
-                let navicnv=document.getElementById("navicnv");
-                let filmcnv=document.getElementById("filmcnv");
+            function resize() {
+                let ctrl = document.getElementById("controls");
+                let hsiz = document.getElementById("hsiz");
+                let main = document.getElementById("main");
+                let hsep = document.getElementById("hsep");
+                let navi = document.getElementById("navi");
+                let vsiz = document.getElementById("vsiz");
+                let fstr = document.getElementById("filmstrip");
 
-                if(fstrip>128)
-                    fstrip=128;
-                if(fstrip<0)fstrip=0;
-                width=filmcnv.width=window.innerWidth;
-        
-                mainh=maincnv.height=navicnv.height=window.innerHeight-fstrip-vsiz.offsetHeight;
-                ctrl.style.height=
-                        hsiz.style.height=
-                        main.style.height=
-                        hsep.style.height=
-                        navi.style.height=
-                        vsiz.style.top=mainh+"px";
-                nfact=(mainh-10-10)/(atlas.zdim+atlas.zdim+atlas.xdim);
-                navw=navicnv.width=nfact*Math.max(atlas.ydim,atlas.xdim);
-                ctrl.style.width=hsiz.style.left=ctrlw+"px";
-                navi.style.left=(width-navw)+"px";
-                navi.style.width=navw+"px";
-                hsep.style.left=(width-navw-hsep.offsetWidth)+"px";
-                main.style.left=(ctrlw+hsiz.offsetWidth)+"px";
-                mainw=maincnv.width=width-ctrlw-navw-hsiz.offsetWidth-hsep.offsetWidth;
-                main.style.width=mainw+"px";
-                vsiz.style.width=fstr.style.width=width+"px";
-                fstr.style.top=(window.innerHeight-fstrip)+"px";
-                filmcnv.height=fstrip;
-                fstr.style.height=fstrip+"px";
+                let maincnv = document.getElementById("maincnv");
+                let navicnv = document.getElementById("navicnv");
+                let filmcnv = document.getElementById("filmcnv");
+
+                if (fstrip > 128)
+                    fstrip = 128;
+                if (fstrip < 0)
+                    fstrip = 0;
+                width = filmcnv.width = window.innerWidth;
+
+                mainh = maincnv.height = navicnv.height = window.innerHeight - fstrip - vsiz.offsetHeight;
+                ctrl.style.height =
+                        hsiz.style.height =
+                        main.style.height =
+                        hsep.style.height =
+                        navi.style.height =
+                        vsiz.style.top = mainh + "px";
+                nfact = (mainh - 10 - 10) / (atlas.zdim + atlas.zdim + atlas.xdim);
+                navw = navicnv.width = nfact * Math.max(atlas.ydim, atlas.xdim);
+                ctrl.style.width = hsiz.style.left = ctrlw + "px";
+                navi.style.left = (width - navw) + "px";
+                navi.style.width = navw + "px";
+                hsep.style.left = (width - navw - hsep.offsetWidth) + "px";
+                main.style.left = (ctrlw + hsiz.offsetWidth) + "px";
+                mainw = maincnv.width = width - ctrlw - navw - hsiz.offsetWidth - hsep.offsetWidth;
+                main.style.width = mainw + "px";
+                vsiz.style.width = fstr.style.width = width + "px";
+                fstr.style.top = (window.innerHeight - fstrip) + "px";
+                filmcnv.height = fstrip;
+                fstr.style.height = fstrip + "px";
                 drawX("maincnv");
                 drawX("navicnv");
                 drawX("filmcnv");
@@ -280,153 +280,156 @@ and open the template in the editor.
 //                drawimage();
 //                drawnavi();
             }
-            function drawX(id){
-                let cnv=document.getElementById(id);
+            function drawX(id) {
+                let cnv = document.getElementById(id);
 //                let parent=cnv.parentNode;
 //                cnv.width=parent.offsetWidth;
 //                cnv.height=parent.offsetHeight;
-                let ctx=cnv.getContext("2d");
-                ctx.clearRect(0,0,cnv.width,cnv.height);
-                ctx.lineWidth=1;
-                ctx.strokeStyle="red";
-                ctx.strokeRect(0.5,0.5,cnv.width-1,cnv.height-1);
+                let ctx = cnv.getContext("2d");
+                ctx.clearRect(0, 0, cnv.width, cnv.height);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "red";
+                ctx.strokeRect(0.5, 0.5, cnv.width - 1, cnv.height - 1);
                 ctx.beginPath();
-                ctx.moveTo(0,0);
-                ctx.lineTo(cnv.width,cnv.height);
-                ctx.moveTo(0,cnv.height);
-                ctx.lineTo(cnv.width,0);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(cnv.width, cnv.height);
+                ctx.moveTo(0, cnv.height);
+                ctx.lineTo(cnv.width, 0);
                 ctx.stroke();
             }
-            
+
             let strippos;
             let stripidx;
-            let stripdrawing=false;
-            let stripredraw=false;
-            async function drawstrip(){
-                if(!ready)return;
-                stripredraw=false;
-                if(stripdrawing){
-                    stripredraw=true;
+            let stripdrawing = false;
+            let stripredraw = false;
+            async function drawstrip() {
+                if (!ready)
+                    return;
+                stripredraw = false;
+                if (stripdrawing) {
+                    stripredraw = true;
                     return;
                 }
-                
-                if(strippos>fsw-width)strippos=fsw-width;
-                if(strippos<0)strippos=0;
-                let current=images[stripidx];
-                
-                let cnv=document.getElementById("filmcnv");
-                let ctx=cnv.getContext("2d");
-                ctx.clearRect(0,0,width,fstrip);
-                ctx.fillStyle="black";
-                
-                let alpha=document.getElementById("stripalpha").valueAsNumber;
+
+                if (strippos > fsw - width)
+                    strippos = fsw - width;
+                if (strippos < 0)
+                    strippos = 0;
+                let current = images[stripidx];
+
+                let cnv = document.getElementById("filmcnv");
+                let ctx = cnv.getContext("2d");
+                ctx.clearRect(0, 0, width, fstrip);
+                ctx.fillStyle = "black";
+
+                let alpha = document.getElementById("stripalpha").valueAsNumber;
 //                if(alpha>0){ // todo: rate limit
-                let so=document.getElementById("stripoutline");
-                so.disabled=alpha<100;
-                if(so.disabled)
-                    alpha=-alpha;
+                let so = document.getElementById("stripoutline");
+                so.disabled = alpha < 100;
+                if (so.disabled)
+                    alpha = -alpha;
                 else
-                    alpha=parseInt(so.value.substring(1),16);
-                
-                for(let image of images)
-                    if(image.fsx-strippos>=-image.fsw && image.fsx-strippos<=width){
-                        if(image===current){
-                            ctx.fillStyle="orange";
-                            ctx.fillRect(image.fsx-strippos-10,0,image.fsw+20,128);
-                            ctx.fillStyle="black";
+                    alpha = parseInt(so.value.substring(1), 16);
+
+                for (let image of images)
+                    if (image.fsx - strippos >= -image.fsw && image.fsx - strippos <= width) {
+                        if (image === current) {
+                            ctx.fillStyle = "orange";
+                            ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
+                            ctx.fillStyle = "black";
                         }
-                        if(image.hasOwnProperty("icon")){
-                            ctx.drawImage(image.icon,image.fsx-strippos,image.fsy,image.fsw,image.fsh);
-                            if(alpha!==0 || !so.disabled)
-                            drawslice(image.ouv,ctx,image.fsx-strippos,image.fsy,image.fsw,image.fsh,alpha);
-                        }
-                        else{
-                            ctx.fillRect(image.fsx-strippos,image.fsy,image.fsw,image.fsh);
-                            drawslice(image.ouv,ctx,image.fsx-strippos,image.fsy,image.fsw,image.fsh,-100);
-                            let w=image.width;
-                            let h=image.height;
-                            let t=image.tilesize;
-                            let l=image.maxlevel;
-                            while(w>t || h>t){
-                                w=(w+1)>>1;
-                                h=(h+1)>>1;
+                        if (image.hasOwnProperty("icon")) {
+                            ctx.drawImage(image.icon, image.fsx - strippos, image.fsy, image.fsw, image.fsh);
+                            if (alpha !== 0 || !so.disabled)
+                                drawslice(image.ouv, ctx, image.fsx - strippos, image.fsy, image.fsw, image.fsh, alpha);
+                        } else {
+                            ctx.fillRect(image.fsx - strippos, image.fsy, image.fsw, image.fsh);
+                            drawslice(image.ouv, ctx, image.fsx - strippos, image.fsy, image.fsw, image.fsh, -100);
+                            let w = image.width;
+                            let h = image.height;
+                            let t = image.tilesize;
+                            let l = image.maxlevel;
+                            while (w > t || h > t) {
+                                w = (w + 1) >> 1;
+                                h = (h + 1) >> 1;
                                 l--;
                             }
-                            let i=document.createElement("img");
-                            i.onload=()=>{image.icon=i;drawstrip();};
-                            i.crossOrigin="anonymous";
-                            i.src=await fetch(
-                                `https://data-proxy.ebrains.eu/api/v1/buckets/${image.base+l}/0_0.${image.format}?redirect=false`,{
-                                    headers:{
-                                        accept:"application/json",
-                                        authorization:`Bearer ${token}`
-                                    }
-                                }
-                            ).then(response=>response.json()).then(json=>json.url);
+                            let i = document.createElement("img");
+                            i.onload = () => {
+                                image.icon = i;
+                                drawstrip();
+                            };
+                            i.crossOrigin = "anonymous";
+                            i.src = await dpurlget(image.base + l + "/0_0." + image.format).then(json => json.url);
                         }
                     }
-                
-                stripdrawing=false;
-                if(stripredraw)
+
+                stripdrawing = false;
+                if (stripredraw)
                     drawstrip();
             }
-            function stripscroll(event){
+            function stripscroll(event) {
                 event.preventDefault();
-                strippos-=event.deltaY;
+                strippos -= event.deltaY;
                 drawstrip();
             }
-            let strippick=false;
-            function stripdown(event){
-                if(!ready)return;
-                strippick={downx:event.offsetX,mx:event.offsetX,t:Date.now()};
+            let strippick = false;
+            function stripdown(event) {
+                if (!ready)
+                    return;
+                strippick = {downx: event.offsetX, mx: event.offsetX, t: Date.now()};
             }
-            let stripmoving=false;
-            function stripmove(event){
-                if(!strippick)return;
-                let t=Date.now();
-                if(t===strippick.t)return;
-                let v=(strippick.mx-event.offsetX)/(t-strippick.t);
-                strippick.mx=event.offsetX;
-                strippick.t=t;
-                if(!stripmoving){
-                    stripmoving={t};
+            let stripmoving = false;
+            function stripmove(event) {
+                if (!strippick)
+                    return;
+                let t = Date.now();
+                if (t === strippick.t)
+                    return;
+                let v = (strippick.mx - event.offsetX) / (t - strippick.t);
+                strippick.mx = event.offsetX;
+                strippick.t = t;
+                if (!stripmoving) {
+                    stripmoving = {t};
                     requestAnimationFrame(stripanim);
                 }
-                stripmoving.v=v;
+                stripmoving.v = v;
                 drawstrip();
             }
-            function stripanim(){
-                if(!stripmoving)return;
-                let t=Date.now();
-                strippos+=stripmoving.v*(t-stripmoving.t);
-                stripmoving.t=t;
-                stripmoving.v*=0.95;
-                if(Math.abs(stripmoving.v)<0.01)stripmoving=false;
-                if(strippos>fsw-width){
-                    strippos=fsw-width;
-                    stripmoving=false;
+            function stripanim() {
+                if (!stripmoving)
+                    return;
+                let t = Date.now();
+                strippos += stripmoving.v * (t - stripmoving.t);
+                stripmoving.t = t;
+                stripmoving.v *= 0.95;
+                if (Math.abs(stripmoving.v) < 0.01)
+                    stripmoving = false;
+                if (strippos > fsw - width) {
+                    strippos = fsw - width;
+                    stripmoving = false;
                 }
-                if(strippos<0){
-                    strippos=0;
-                    stripmoving=false;
+                if (strippos < 0) {
+                    strippos = 0;
+                    stripmoving = false;
                 }
-                if(stripmoving)
+                if (stripmoving)
                     requestAnimationFrame(stripanim);
                 drawstrip();
             }
-            function stripup(event){
-                if(Math.abs(strippick.downx-event.offsetX)<2){
-                    stripmoving=false;
-                    let x=event.offsetX+strippos;
-                    for(let i=0;i<images.length;i++){
-                        let image=images[i];
-                        if(image.fsx<=x && x<image.fsx+image.fsw){
+            function stripup(event) {
+                if (Math.abs(strippick.downx - event.offsetX) < 2) {
+                    stripmoving = false;
+                    let x = event.offsetX + strippos;
+                    for (let i = 0; i < images.length; i++) {
+                        let image = images[i];
+                        if (image.fsx <= x && x < image.fsx + image.fsw) {
                             activateslice(i);
                             break;
                         }
                     }
                 }
-                strippick=false;
+                strippick = false;
             }
 //            let strippick=false;
 //            function stripdown(event){
@@ -451,12 +454,13 @@ and open the template in the editor.
 //                }
 //                strippick=false;
 //            }
-            function strippick_remove(event){
-                if(!ready)return;
-                let x=event.offsetX+strippos;
-                for(let i=0;i<images.length;i++){
-                    let image=images[i];
-                    if(image.fsx<=x && x<image.fsx+image.fsw){
+            function strippick_remove(event) {
+                if (!ready)
+                    return;
+                let x = event.offsetX + strippos;
+                for (let i = 0; i < images.length; i++) {
+                    let image = images[i];
+                    if (image.fsx <= x && x < image.fsx + image.fsw) {
                         activateslice(i);
                         break;
                     }
@@ -464,111 +468,124 @@ and open the template in the editor.
             }
 
             let ouv;
-            function activateslice(idx){
-                series.current=idx;
-                stripidx=idx;
-                marker=false;
-                let image=images[idx];
-                document.getElementById("image").innerText=image.filename+"\n"+image.width+" x "+image.height;
-                ouv=image.ouv.slice();
+            function activateslice(idx) {
+                series.current = idx;
+                stripidx = idx;
+                marker = false;
+                let image = images[idx];
+                document.getElementById("image").innerText = image.filename + "\n" + image.width + " x " + image.height;
+                ouv = image.ouv.slice();
                 imagenavi();
 //                drawimage();
                 drawstrip();
 //                drawnavi();
 //                drawcut();
             }
-            function store(){
-                if(!ready)return;
-                let image=images[stripidx];
-                image.ouv=ouv.slice();
-                image.anchored=true;
+            function store() {
+                if (!ready)
+                    return;
+                let image = images[stripidx];
+                image.ouv = ouv.slice();
+                image.anchored = true;
+
+                delete series.sections[stripidx].markers;
+                let idx = stripidx - 1;
+                while (idx > 0 && !images[idx].anchored) {
+                    delete series.sections[idx].markers;
+                    idx--;
+                }
+                idx = stripidx + 1;
+                while (idx < images.length && !images[idx].anchored) {
+                    delete series.sections[idx].markers;
+                    idx++;
+                }
+
                 propagate();
                 drawstrip();
             }
-            function restore(){
-                if(!ready)return;
-                ouv=images[stripidx].ouv.slice();
+            function restore() {
+                if (!ready)
+                    return;
+                ouv = images[stripidx].ouv.slice();
                 imagenavi();
 //                drawimage();
 //                drawnavi();
             }
-            function ouv_clear(){
-                if(!ready)return;
-                switch(document.getElementById("mode").selectedIndex){
+            function ouv_clear() {
+                if (!ready)
+                    return;
+                switch (document.getElementById("mode").selectedIndex) {
                     case 0:
-                        ouv=[0,atlas.ydim/2,atlas.zdim-1,
-                             atlas.xdim,0,0,
-                             0,0,-atlas.zdim];
+                        ouv = [0, atlas.ydim / 2, atlas.zdim - 1,
+                            atlas.xdim, 0, 0,
+                            0, 0, -atlas.zdim];
                         break;
                     case 1:
-                        ouv=[atlas.xdim/2,atlas.ydim-1,atlas.zdim-1,
-                             0,-atlas.ydim,0,
-                             0,0,-atlas.zdim];
+                        ouv = [atlas.xdim / 2, atlas.ydim - 1, atlas.zdim - 1,
+                            0, -atlas.ydim, 0,
+                            0, 0, -atlas.zdim];
                         break;
                     case 2:
-                        ouv=[0,atlas.ydim-1,atlas.zdim/2,
-                             0,-atlas.ydim,0,
-                             atlas.xdim,0,0];
+                        ouv = [0, atlas.ydim - 1, atlas.zdim / 2,
+                            0, -atlas.ydim, 0,
+                            atlas.xdim, 0, 0];
                         break;
                 }
                 imagenavi();
 //                drawimage();
 //                drawnavi();
             }
-            
-            let mainimg=false;
-            let marker=false;
-            async function drawimage(){
-                if(!ready)return;
-                let idx=stripidx;
-                let {width,height,tilesize,overlap,format,base,maxlevel,fullcanvas/*,ouv*/}=images[idx];
-                let x=0,y=0;
-                let w=mainw,h=mainh;
-                if(w/h<width/height){
-                    h=Math.floor(w*height/width);
-                    y=(mainh-h)/2;
-                }else{
-                    w=Math.floor(h*width/height);
-                    x=(mainw-w)/2;
+
+            let mainimg = false;
+            let marker = false;
+            let slice = false;
+            async function drawimage() {
+                if (!ready)
+                    return;
+                slice = false;
+                let idx = stripidx;
+                let {width, height, tilesize, overlap, format, base, maxlevel, fullcanvas/*,ouv*/} = images[idx];
+                let x = 0, y = 0;
+                let w = mainw, h = mainh;
+                if (w / h < width / height) {
+                    h = Math.floor(w * height / width);
+                    y = (mainh - h) / 2;
+                } else {
+                    w = Math.floor(h * width / height);
+                    x = (mainw - w) / 2;
                 }
-                mainimg={x,y,w,h};
-                while(width>w*2 && height>h*2){
+                mainimg = {x, y, w, h};
+                while (width > w * 2 && height > h * 2) {
                     maxlevel--;
-                    width=(width+1)>>1;
-                    height=(height+1)>>1;
+                    width = (width + 1) >> 1;
+                    height = (height + 1) >> 1;
                 }
-                if(!fullcanvas || fullcanvas.width<w || fullcanvas.height<h){
-                fullcanvas=document.createElement("canvas");
-                let ctx=fullcanvas.getContext("2d");
-                fullcanvas.width=width;
-                fullcanvas.height=height;
-                let xtiles=Math.ceil(width/tilesize);
-                let ytiles=Math.ceil(height/tilesize);
-                let loads=[];
-                let wcopy=mainw;
-                let hcopy=mainh;
-                //let xx=x,yy=y;
-                for(let x=0;x<xtiles;x++)
-                    for(let y=0;y<ytiles;y++)
-                        loads.push(fetch(
-                            `https://data-proxy.ebrains.eu/api/v1/buckets/${base+maxlevel}/${x}_${y}.${format}?redirect=false`,{
-                                headers:{
-                                    accept:"application/json",
-                                    authorization:`Bearer ${token}`
-                                }
-                            }
-                        ).then(result=>result.json()).then(json=>new Promise((resolve,reject)=>{
-                            let tile=document.createElement("img");
-                            tile.onerror=reject;
-                            tile.onload=()=>{
-                                ctx.drawImage(tile,x*tilesize-(x===0?0:overlap),y*tilesize-(y===0?0:overlap));
-                                //if(wcopy===mainw && hcopy===mainh && idx===stripidx)
-                                //    document.getElementById("maincnv").getContext("2d").drawImage(fullcanvas,xx,yy,w,h);
-                                resolve();
-                            };
-                            tile.crossOrigin="anonymous";
-                            tile.src=json.url;
-                        })));
+                if (!fullcanvas || fullcanvas.width < w || fullcanvas.height < h) {
+                    fullcanvas = document.createElement("canvas");
+                    let ctx = fullcanvas.getContext("2d");
+                    fullcanvas.width = width;
+                    fullcanvas.height = height;
+                    let xtiles = Math.ceil(width / tilesize);
+                    let ytiles = Math.ceil(height / tilesize);
+                    let loads = [];
+                    let wcopy = mainw;
+                    let hcopy = mainh;
+                    //let xx=x,yy=y;
+                    for (let x = 0; x < xtiles; x++)
+                        for (let y = 0; y < ytiles; y++)
+                            loads.push(dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
+                                    .then(json => new Promise((resolve, reject) => {
+                                            let tile = document.createElement("img");
+                                            tile.onerror = reject;
+                                            tile.onload = () => {
+                                                ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                                //if(wcopy===mainw && hcopy===mainh && idx===stripidx)
+                                                //    document.getElementById("maincnv").getContext("2d").drawImage(fullcanvas,xx,yy,w,h);
+                                                resolve();
+                                            };
+                                            tile.crossOrigin = "anonymous";
+                                            tile.src = json.url;
+                                        })));
 //                        loads.push(new Promise((resolve,reject)=>{
 //                            let tile=document.createElement("img");
 //                            tile.onerror=reject;
@@ -581,318 +598,372 @@ and open the template in the editor.
 //                            tile.crossOrigin="anonymous";
 //                            tile.src=base+maxlevel+"/"+x+"_"+y+"."+format;
 //                        }));
-                await Promise.all(loads);
-                if(wcopy!==mainw || hcopy!==mainh)
-                    return;
-                images[idx].fullcanvas=fullcanvas;
-                if(idx!==stripidx)
-                    return;
-            }
-                ctx=document.getElementById("maincnv").getContext("2d");
-                ctx.clearRect(0,0,mainw,mainh);
-                ctx.drawImage(fullcanvas,x,y,w,h);
-                let alpha=document.getElementById("mainalpha").valueAsNumber;
-                if(alpha>0){ // todo: rate limit
-                    let mo=document.getElementById("mainoutline");
-                    mo.disabled=alpha<100;
-                    if(mo.disabled)
-                        alpha=-alpha;
+                    await Promise.all(loads);
+                    if (wcopy !== mainw || hcopy !== mainh)
+                        return;
+                    images[idx].fullcanvas = fullcanvas;
+                    if (idx !== stripidx)
+                        return;
+                }
+                ctx = document.getElementById("maincnv").getContext("2d");
+                ctx.clearRect(0, 0, mainw, mainh);
+                ctx.drawImage(fullcanvas, x, y, w, h);
+                let alpha = document.getElementById("mainalpha").valueAsNumber;
+                if (alpha > 0) { // todo: rate limit
+                    let mo = document.getElementById("mainoutline");
+                    mo.disabled = alpha < 100;
+                    if (mo.disabled)
+                        alpha = -alpha;
                     else
-                        alpha=parseInt(mo.value.substring(1),16);
-                    drawslice(ouv,ctx,x,y,w,h,alpha);
-                    if(marker){
-                        ctx.strokeStyle="black";
-                        ctx.lineWidth=2;
+                        alpha = parseInt(mo.value.substring(1), 16);
+                    slice = {...drawslice(ouv, ctx, x, y, w, h, alpha), x, y, w, h};
+                    drawpop();
+                    if (marker) {
+                        ctx.strokeStyle = "black";
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
-                        switch(marker.type){
+                        switch (marker.type) {
                             case "cross":
-                                ctx.moveTo(x+w*marker.x-10,y+h*marker.y);
-                                ctx.lineTo(x+w*marker.x+10,y+h*marker.y);
-                                ctx.moveTo(x+w*marker.x,y+h*marker.y-10);
-                                ctx.lineTo(x+w*marker.x,y+h*marker.y+10);
+                                ctx.moveTo(x + w * marker.x - 10, y + h * marker.y);
+                                ctx.lineTo(x + w * marker.x + 10, y + h * marker.y);
+                                ctx.moveTo(x + w * marker.x, y + h * marker.y - 10);
+                                ctx.lineTo(x + w * marker.x, y + h * marker.y + 10);
                                 break;
                             case "vscale":
-                                ctx.moveTo(0,y+h*marker.y);
-                                ctx.lineTo(mainw,y+h*marker.y);
-    //                            ctx.moveTo(0,mainy);
-    //                            ctx.lineTo(mainw,mainy);
+                                ctx.moveTo(0, y + h * marker.y);
+                                ctx.lineTo(mainw, y + h * marker.y);
+                                //                            ctx.moveTo(0,mainy);
+                                //                            ctx.lineTo(mainw,mainy);
                                 break;
                             case "hscale":
-                                ctx.moveTo(x+w*marker.x,0);
-                                ctx.lineTo(x+w*marker.x,mainh);
+                                ctx.moveTo(x + w * marker.x, 0);
+                                ctx.lineTo(x + w * marker.x, mainh);
 //                                ctx.moveTo(mainx,0);
 //                                ctx.lineTo(mainx,mainh);
                                 break;
                             case "rotate":
-                                ctx.moveTo(x+w*marker.x-5,y+h*marker.y);
-                                ctx.lineTo(x+w*marker.x+5,y+h*marker.y);
-                                ctx.moveTo(x+w*marker.x,y+h*marker.y-5);
-                                ctx.lineTo(x+w*marker.x,y+h*marker.y+5);
+                                ctx.moveTo(x + w * marker.x - 5, y + h * marker.y);
+                                ctx.lineTo(x + w * marker.x + 5, y + h * marker.y);
+                                ctx.moveTo(x + w * marker.x, y + h * marker.y - 5);
+                                ctx.lineTo(x + w * marker.x, y + h * marker.y + 5);
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.arc(x+w*marker.x,y+h*marker.y,10,3*Math.PI/4,Math.PI/4);
+                                ctx.arc(x + w * marker.x, y + h * marker.y, 10, 3 * Math.PI / 4, Math.PI / 4);
                                 break;
                         }
                         ctx.stroke();
                     }
                 }
             }
-            
-            let navw=0;
+
+            let drawpopscaping = false;
+            let drawpopdata = 0;
+            function drawpop() {
+                if (!slice)
+                    return;
+                const x = Math.round((mainx - slice.x) * slice.width / slice.w);
+                const y = Math.round((mainy - slice.y) * slice.height / slice.h);
+                const out = x < 0 || y < 0 || x >= slice.width || y >= slice.height;
+                const d = out ? 0 : slice.data[x + y * slice.width];
+                let newscaping = drawpopscaping;
+                if (mainy < mainh / 3)
+                    newscaping = false;
+                if (mainy > mainh * 2 / 3)
+                    newscaping = true;
+                if (d === 0) {
+                    drawpopscaping = newscaping;
+                    if (drawpopdata !== 0) {
+                        drawpopdata = 0;
+                        drawimage();
+                    }
+                } else {
+                    if (newscaping !== drawpopscaping) {
+                        drawpopscaping = newscaping;
+                        drawpopdata = 0;
+                        drawimage();
+                    } else if (drawpopdata !== d) {
+                        drawpopdata = d;
+                        const pop = atlas.labels[d];
+                        const ctx = document.getElementById("maincnv").getContext("2d");
+                        ctx.fillStyle = "rgb(" + pop.r + "," + pop.g + "," + pop.b + ")";
+                        if (drawpopscaping)
+                            ctx.fillRect(0, 0, mainw, 60);
+                        else
+                            ctx.fillRect(0, mainh - 60, mainw, 60);
+                        let fontsize = 40;
+                        do {
+                            ctx.font = `${fontsize}px sans-serif`;
+                            fontsize--;
+                        } while (ctx.measureText(pop.name).width > mainw - 20 && fontsize > 1);
+                        ctx.fillStyle = "#000000";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        if (drawpopscaping)
+                            ctx.fillText(pop.name, mainw / 2, 30);
+                        else
+                            ctx.fillText(pop.name, mainw / 2, mainh - 30);
+                    }
+                }
+            }
+
+            let navw = 0;
             let nfact;
             let zfact;
             let xfact;
             let midpoint;
-            function drawnavi(){
-                if(!ready)return;
-                let {xdim,ydim,zdim}=atlas;
-                let cnv=document.getElementById("navicnv");
-                let ctx=cnv.getContext("2d");
-                ctx.clearRect(0,0,cnv.width,cnv.height);
+            function drawnavi() {
+                if (!ready)
+                    return;
+                let {xdim, ydim, zdim} = atlas;
+                let cnv = document.getElementById("navicnv");
+                let ctx = cnv.getContext("2d");
+                ctx.clearRect(0, 0, cnv.width, cnv.height);
 //                let nfact=(mainh-10-10)/(atlas.zdim+atlas.zdim+atlas.xdim);
-                let points=[[0,0],[1,0],[1,1],[0,1],[0.5,0.5]].map(uv=>
-                        [0,1,2].map(idx=>ouv[idx]+uv[0]*ouv[idx+3]+uv[1]*ouv[idx+6]));
+                let points = [[0, 0], [1, 0], [1, 1], [0, 1], [0.5, 0.5]].map(uv =>
+                    [0, 1, 2].map(idx => ouv[idx] + uv[0] * ouv[idx + 3] + uv[1] * ouv[idx + 6]));
 //                let x=ouv[0]+(ouv[3]+ouv[6])/2;
 //                let y=ouv[1]+(ouv[4]+ouv[7])/2;
 //                let z=ouv[2]+(ouv[5]+ouv[8])/2;
-                xfact=xdim*nfact;
-                zfact=zdim*nfact;
-                let navi=document.getElementById("navi");
-                let g1=document.getElementById("group1");
-                g1.style.left=navi.offsetLeft+"px";
-                g1.style.top=navi.offsetTop+"px";
-                let g2=document.getElementById("group2");
-                g2.style.left=navi.offsetLeft+"px";
-                g2.style.top=navi.offsetTop+zfact+10+"px";
-                let g3=document.getElementById("group3");
-                g3.style.left=navi.offsetLeft+navw-xfact+"px";
-                g3.style.top=navi.offsetTop+zfact+xfact+10+10+"px";
-                ctx.fillStyle="black";
-                ctx.fillRect(0,0,navw,zfact);
-                ctx.fillRect(0,zfact+10,navw,xfact);
-                ctx.fillRect(navw-xfact,zfact+xfact+10+10,xfact,zfact);
-                drawslice([points[4][0],ydim-1,zdim-1,
-                           0,-ydim,0,
-                           0,0,-zdim],ctx,0,0,navw,zfact,-100);
-                drawslice([xdim-1,ydim-1,points[4][2],
-                           0,-ydim,0,
-                           -xdim,0,0],ctx,0,zfact+10,navw,xfact,-100);
-                drawslice([0,points[4][1],zdim-1,
-                           xdim,0,0,
-                           0,0,-zdim],ctx,navw-xfact,zfact+xfact+10+10,xfact,zfact,-100);
-                let npoints=points.map(p=>[p[0]*nfact,navw-p[1]*nfact,zfact-p[2]*nfact]);
-                midpoint=npoints[4];
-                
-                ctx.lineWidth=2;
-                
+                xfact = xdim * nfact;
+                zfact = zdim * nfact;
+                let navi = document.getElementById("navi");
+                let g1 = document.getElementById("group1");
+                g1.style.left = navi.offsetLeft + "px";
+                g1.style.top = navi.offsetTop + "px";
+                let g2 = document.getElementById("group2");
+                g2.style.left = navi.offsetLeft + "px";
+                g2.style.top = navi.offsetTop + zfact + 10 + "px";
+                let g3 = document.getElementById("group3");
+                g3.style.left = navi.offsetLeft + navw - xfact + "px";
+                g3.style.top = navi.offsetTop + zfact + xfact + 10 + 10 + "px";
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, navw, zfact);
+                ctx.fillRect(0, zfact + 10, navw, xfact);
+                ctx.fillRect(navw - xfact, zfact + xfact + 10 + 10, xfact, zfact);
+                drawslice([points[4][0], ydim - 1, zdim - 1,
+                    0, -ydim, 0,
+                    0, 0, -zdim], ctx, 0, 0, navw, zfact, -100);
+                drawslice([xdim - 1, ydim - 1, points[4][2],
+                    0, -ydim, 0,
+                    -xdim, 0, 0], ctx, 0, zfact + 10, navw, xfact, -100);
+                drawslice([0, points[4][1], zdim - 1,
+                    xdim, 0, 0,
+                    0, 0, -zdim], ctx, navw - xfact, zfact + xfact + 10 + 10, xfact, zfact, -100);
+                let npoints = points.map(p => [p[0] * nfact, navw - p[1] * nfact, zfact - p[2] * nfact]);
+                midpoint = npoints[4];
+
+                ctx.lineWidth = 2;
+
                 ctx.beginPath();
-                ctx.moveTo(npoints[0][1],npoints[0][2]);
-                ctx.lineTo(npoints[1][1],npoints[1][2]);
-                ctx.lineTo(npoints[2][1],npoints[2][2]);
-                ctx.lineTo(npoints[3][1],npoints[3][2]);
+                ctx.moveTo(npoints[0][1], npoints[0][2]);
+                ctx.lineTo(npoints[1][1], npoints[1][2]);
+                ctx.lineTo(npoints[2][1], npoints[2][2]);
+                ctx.lineTo(npoints[3][1], npoints[3][2]);
                 ctx.closePath();
-                ctx.fillStyle="blue";
-                ctx.globalAlpha=0.2;
+                ctx.fillStyle = "blue";
+                ctx.globalAlpha = 0.2;
                 ctx.fill();
-                ctx.globalAlpha=1;
-                ctx.strokeStyle="yellow";
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = "yellow";
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(npoints[4][1],npoints[4][2],3,0,Math.PI*2);
+                ctx.arc(npoints[4][1], npoints[4][2], 3, 0, Math.PI * 2);
                 ctx.closePath();
-                ctx.fillStyle="yellow";
+                ctx.fillStyle = "yellow";
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.moveTo(npoints[0][1],xfact-npoints[0][0]+zfact+10);
-                ctx.lineTo(npoints[1][1],xfact-npoints[1][0]+zfact+10);
-                ctx.lineTo(npoints[2][1],xfact-npoints[2][0]+zfact+10);
-                ctx.lineTo(npoints[3][1],xfact-npoints[3][0]+zfact+10);
+                ctx.moveTo(npoints[0][1], xfact - npoints[0][0] + zfact + 10);
+                ctx.lineTo(npoints[1][1], xfact - npoints[1][0] + zfact + 10);
+                ctx.lineTo(npoints[2][1], xfact - npoints[2][0] + zfact + 10);
+                ctx.lineTo(npoints[3][1], xfact - npoints[3][0] + zfact + 10);
                 ctx.closePath();
-                ctx.fillStyle="blue";
-                ctx.globalAlpha=0.2;
+                ctx.fillStyle = "blue";
+                ctx.globalAlpha = 0.2;
                 ctx.fill();
-                ctx.globalAlpha=1;
-                ctx.strokeStyle="yellow";
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = "yellow";
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(npoints[4][1],xfact-npoints[4][0]+zfact+10,3,0,Math.PI*2);
+                ctx.arc(npoints[4][1], xfact - npoints[4][0] + zfact + 10, 3, 0, Math.PI * 2);
                 ctx.closePath();
-                ctx.fillStyle="yellow";
+                ctx.fillStyle = "yellow";
                 ctx.fill();
-                
+
                 ctx.beginPath();
-                ctx.moveTo(npoints[0][0]+navw-xfact,npoints[0][2]+zfact+10+xfact+10);
-                ctx.lineTo(npoints[1][0]+navw-xfact,npoints[1][2]+zfact+10+xfact+10);
-                ctx.lineTo(npoints[2][0]+navw-xfact,npoints[2][2]+zfact+10+xfact+10);
-                ctx.lineTo(npoints[3][0]+navw-xfact,npoints[3][2]+zfact+10+xfact+10);
+                ctx.moveTo(npoints[0][0] + navw - xfact, npoints[0][2] + zfact + 10 + xfact + 10);
+                ctx.lineTo(npoints[1][0] + navw - xfact, npoints[1][2] + zfact + 10 + xfact + 10);
+                ctx.lineTo(npoints[2][0] + navw - xfact, npoints[2][2] + zfact + 10 + xfact + 10);
+                ctx.lineTo(npoints[3][0] + navw - xfact, npoints[3][2] + zfact + 10 + xfact + 10);
                 ctx.closePath();
-                ctx.fillStyle="blue";
-                ctx.globalAlpha=0.2;
+                ctx.fillStyle = "blue";
+                ctx.globalAlpha = 0.2;
                 ctx.fill();
-                ctx.globalAlpha=1;
-                ctx.strokeStyle="yellow";
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = "yellow";
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(npoints[4][0]+navw-xfact,npoints[4][2]+zfact+10+xfact+10,3,0,Math.PI*2);
+                ctx.arc(npoints[4][0] + navw - xfact, npoints[4][2] + zfact + 10 + xfact + 10, 3, 0, Math.PI * 2);
                 ctx.closePath();
-                ctx.fillStyle="yellow";
+                ctx.fillStyle = "yellow";
                 ctx.fill();
-            }
-            
-            function drawcut(){
-                
             }
 
-            let drag=false;
-            function mup(event){
-                if(drag){
-                    drag=false;
-                    if(marker){
-                        marker.type="cross";
+            function drawcut() {
+
+            }
+
+            let drag = false;
+            function mup(event) {
+                if (drag) {
+                    drag = false;
+                    if (marker) {
+                        marker.type = "cross";
                         drawimage();
                     }
                 }
             }
-            function hresize(event){
-                drag={type:"hresize",x:event.target.offsetWidth-event.offsetX};
+            function hresize(event) {
+                drag = {type: "hresize", x: event.target.offsetWidth - event.offsetX};
             }
-            function vresize(event){
-                drag={type:"vresize",y:event.target.offsetHeight-event.offsetY};
+            function vresize(event) {
+                drag = {type: "vresize", y: event.target.offsetHeight - event.offsetY};
             }
-            function range(v,c,r){
-                return v>=c-r && v<=c+r;
+            function range(v, c, r) {
+                return v >= c - r && v <= c + r;
             }
-            function ndrag(event){
+            function ndrag(event) {
 //                ctx.arc(npoints[4][1],npoints[4][2],3,0,Math.PI*2);
 //                ctx.arc(npoints[4][1],npoints[4][0]+zfact+10,3,0,Math.PI*2);
 //                ctx.arc(npoints[4][0]+navw-xfact,npoints[4][2]+zfact+10+xfact+10,3,0,Math.PI*2);
-                drag={x:event.offsetX,y:event.offsetY};
-                if(range(event.offsetX,midpoint[1],5) && range(event.offsetY,midpoint[2],5)){
-                    drag.type="sdrag";
-                }else if(range(event.offsetX,midpoint[1],5) && range(event.offsetY,xfact-midpoint[0]+zfact+10,5)){
-                    drag.type="hdrag";
-                }else if(range(event.offsetX,midpoint[0]+navw-xfact,5) && range(event.offsetY,midpoint[2]+zfact+10+xfact+10,5)){
-                    drag.type="cdrag";
-                }else if(event.offsetY<zfact){
-                    drag.type="srot";
-                }else if(event.offsetY>zfact+10+xfact+10){
-                    drag.type="crot";
-                }else
-                    drag.type="hrot";
+                drag = {x: event.offsetX, y: event.offsetY};
+                if (range(event.offsetX, midpoint[1], 5) && range(event.offsetY, midpoint[2], 5)) {
+                    drag.type = "sdrag";
+                } else if (range(event.offsetX, midpoint[1], 5) && range(event.offsetY, xfact - midpoint[0] + zfact + 10, 5)) {
+                    drag.type = "hdrag";
+                } else if (range(event.offsetX, midpoint[0] + navw - xfact, 5) && range(event.offsetY, midpoint[2] + zfact + 10 + xfact + 10, 5)) {
+                    drag.type = "cdrag";
+                } else if (event.offsetY < zfact) {
+                    drag.type = "srot";
+                } else if (event.offsetY > zfact + 10 + xfact + 10) {
+                    drag.type = "crot";
+                } else
+                    drag.type = "hrot";
             }
 
-            let mainx,mainy;
-            function mainmove(event){
-                mainx=event.offsetX;
-                mainy=event.offsetY;
+            let mainx = -1, mainy = -1;
+            function mainmove(event) {
+                mainx = event.offsetX;
+                mainy = event.offsetY;
+                drawpop();
             }
-            function maindrag(event){
-                drag={type:"mdrag",x:event.offsetX,y:event.offsetY};
+            function maindrag(event) {
+                drag = {type: "mdrag", x: event.offsetX, y: event.offsetY};
             }
-            function maindown(event){
+            function maindown(event) {
                 event.preventDefault();
-                if(!marker || event.code==="Space")
-                    marker={type:"cross",
-                            x:(mainx-mainimg.x)/mainimg.w,
-                            y:(mainy-mainimg.y)/mainimg.h};
-                if(event.code==="Escape")
-                    marker=false;
-                if(event.code==="Space")
-                    marker.type="cross";
-                if(event.code==="ArrowUp" || event.code==="ArrowDown")
-                    marker.type="vscale";
-                if(event.code==="ArrowLeft" || event.code==="ArrowRight")
-                    marker.type="hscale";
-                if(event.code==="PageUp" || event.code==="PageDown")
-                    marker.type="rotate";
+                if (!marker || event.code === "Space")
+                    marker = {type: "cross",
+                        x: (mainx - mainimg.x) / mainimg.w,
+                        y: (mainy - mainimg.y) / mainimg.h};
+                if (event.code === "Escape")
+                    marker = false;
+                if (event.code === "Space")
+                    marker.type = "cross";
+                if (event.code === "ArrowUp" || event.code === "ArrowDown")
+                    marker.type = "vscale";
+                if (event.code === "ArrowLeft" || event.code === "ArrowRight")
+                    marker.type = "hscale";
+                if (event.code === "PageUp" || event.code === "PageDown")
+                    marker.type = "rotate";
                 drawimage();
             }
-            function mmove(event){
-                if(!drag)return;
+            function mmove(event) {
+                if (!drag)
+                    return;
                 let angles;
-                switch(drag.type){
+                switch (drag.type) {
                     case "hresize":
-                        ctrlw=event.clientX-drag.x;
+                        ctrlw = event.clientX - drag.x;
                         resize();
                         return;
                     case "vresize":
-                        fstrip=Math.max(0,window.innerHeight-event.clientY-drag.y);
+                        fstrip = Math.max(0, window.innerHeight - event.clientY - drag.y);
                         resize();
                         return;
                     case "sdrag":
-                        ouv[1]+=(drag.x-event.offsetX)/nfact;
-                        ouv[2]+=(drag.y-event.offsetY)/nfact;
+                        ouv[1] += (drag.x - event.offsetX) / nfact;
+                        ouv[2] += (drag.y - event.offsetY) / nfact;
                         break;
                     case "hdrag":
-                        ouv[1]+=(drag.x-event.offsetX)/nfact;
-                        ouv[0]+=(drag.y-event.offsetY)/nfact;
+                        ouv[1] += (drag.x - event.offsetX) / nfact;
+                        ouv[0] += (drag.y - event.offsetY) / nfact;
                         break;
                     case "cdrag":
-                        ouv[0]-=(drag.x-event.offsetX)/nfact;
-                        ouv[2]+=(drag.y-event.offsetY)/nfact;
+                        ouv[0] -= (drag.x - event.offsetX) / nfact;
+                        ouv[2] += (drag.y - event.offsetY) / nfact;
                         break;
                     case "srot":
-                        angles=sincos(midpoint[1],midpoint[2],drag.x,drag.y,event.offsetX,event.offsetY);
+                        angles = sincos(midpoint[1], midpoint[2], drag.x, drag.y, event.offsetX, event.offsetY);
                         decomp(ouv);
-                        rot(ouv,4,5,angles);
-                        rot(ouv,7,8,angles);
+                        rot(ouv, 4, 5, angles);
+                        rot(ouv, 7, 8, angles);
                         recomp(ouv);
                         break;
                     case "hrot":
-                        angles=sincos(midpoint[1],xfact-midpoint[0]+zfact+10,drag.x,drag.y,event.offsetX,event.offsetY);
+                        angles = sincos(midpoint[1], xfact - midpoint[0] + zfact + 10, drag.x, drag.y, event.offsetX, event.offsetY);
                         decomp(ouv);
-                        rot(ouv,4,3,angles);
-                        rot(ouv,7,6,angles);
+                        rot(ouv, 4, 3, angles);
+                        rot(ouv, 7, 6, angles);
                         recomp(ouv);
                         break;
                     case "crot":
-                        angles=sincos(midpoint[0]+navw-xfact,midpoint[2]+zfact+10+xfact+10,event.offsetX,event.offsetY,drag.x,drag.y);
+                        angles = sincos(midpoint[0] + navw - xfact, midpoint[2] + zfact + 10 + xfact + 10, event.offsetX, event.offsetY, drag.x, drag.y);
                         decomp(ouv);
-                        rot(ouv,3,5,angles);
-                        rot(ouv,6,8,angles);
+                        rot(ouv, 3, 5, angles);
+                        rot(ouv, 6, 8, angles);
                         recomp(ouv);
                         break;
                     case "mdrag":
-                        if(!marker || marker.type==="cross"){
-                            for(let i=0;i<3;i++){
-                                ouv[i]+=ouv[i+3]*(drag.x-event.offsetX)/mainimg.w;
-                                ouv[i]+=ouv[i+6]*(drag.y-event.offsetY)/mainimg.h;
+                        if (!marker || marker.type === "cross") {
+                            for (let i = 0; i < 3; i++) {
+                                ouv[i] += ouv[i + 3] * (drag.x - event.offsetX) / mainimg.w;
+                                ouv[i] += ouv[i + 6] * (drag.y - event.offsetY) / mainimg.h;
                             }
-                        }else{
-                            switch(marker.type){
+                        } else {
+                            switch (marker.type) {
                                 case "vscale":
-                                    let vfactor=((drag.y-mainimg.y)-mainimg.h*marker.y)/((event.offsetY-mainimg.y)-mainimg.h*marker.y);
-                                    for(let i=0;i<3;i++){
-                                        ouv[i]+=ouv[i+6]*marker.y;
-                                        ouv[i+6]*=vfactor;
-                                        ouv[i]-=ouv[i+6]*marker.y;
+                                    let vfactor = ((drag.y - mainimg.y) - mainimg.h * marker.y) / ((event.offsetY - mainimg.y) - mainimg.h * marker.y);
+                                    for (let i = 0; i < 3; i++) {
+                                        ouv[i] += ouv[i + 6] * marker.y;
+                                        ouv[i + 6] *= vfactor;
+                                        ouv[i] -= ouv[i + 6] * marker.y;
                                     }
                                     break;
                                 case "hscale":
-                                    let hfactor=((drag.x-mainimg.x)-mainimg.w*marker.x)/((event.offsetX-mainimg.x)-mainimg.w*marker.x);
-                                    for(let i=0;i<3;i++){
-                                        ouv[i]+=ouv[i+3]*marker.x;
-                                        ouv[i+3]*=hfactor;
-                                        ouv[i]-=ouv[i+3]*marker.x;
+                                    let hfactor = ((drag.x - mainimg.x) - mainimg.w * marker.x) / ((event.offsetX - mainimg.x) - mainimg.w * marker.x);
+                                    for (let i = 0; i < 3; i++) {
+                                        ouv[i] += ouv[i + 3] * marker.x;
+                                        ouv[i + 3] *= hfactor;
+                                        ouv[i] -= ouv[i + 3] * marker.x;
                                     }
                                     break;
                                 case "rotate":
-                                    let angles=sincos(mainimg.x+mainimg.w*marker.x,
-                                                      mainimg.y+mainimg.h*marker.y,
-                                                      drag.x,drag.y,event.offsetX,event.offsetY);
-                                    for(let i=0;i<3;i++){
-                                        ouv[i]+=ouv[i+3]*marker.x+ouv[i+6]*marker.y;
+                                    let angles = sincos(mainimg.x + mainimg.w * marker.x,
+                                            mainimg.y + mainimg.h * marker.y,
+                                            drag.x, drag.y, event.offsetX, event.offsetY);
+                                    for (let i = 0; i < 3; i++) {
+                                        ouv[i] += ouv[i + 3] * marker.x + ouv[i + 6] * marker.y;
 //                                        ouv[i+3]/=mainimg.w;
 //                                        ouv[i+6]/=mainimg.h;
 //                                        ouv[i]-=(ouv[i+3]+ouv[i+6])/2;
                                     }
 //                                    decomp(ouv);
-                                    let u=ouv.slice(3,6);
-                                    let v=ouv.slice(6);
-                                    for(let i=0;i<3;i++){
-                                        ouv[i+3]=u[i]*angles[1]-v[i]*angles[0];
-                                        ouv[i+6]=u[i]*angles[0]+v[i]*angles[1];
+                                    let u = ouv.slice(3, 6);
+                                    let v = ouv.slice(6);
+                                    for (let i = 0; i < 3; i++) {
+                                        ouv[i + 3] = u[i] * angles[1] - v[i] * angles[0];
+                                        ouv[i + 6] = u[i] * angles[0] + v[i] * angles[1];
                                     }
 //                                    u=mainimg.w/ouv[9];
 //                                    v=mainimg.h/ouv[10];
@@ -901,13 +972,13 @@ and open the template in the editor.
 //                                    ouv[9]=mainimg.w/(u*angles[1]-v*angles[0]);
 //                                    ouv[10]=mainimg.h/(u*angles[0]+v*angles[1]);
 //                                    recomp(ouv);
-                                    for(let i=0;i<3;i++){
+                                    for (let i = 0; i < 3; i++) {
 //                                        ouv[i]+=(ouv[i+3]+ouv[i+6])/2;
 //                                        ouv[i+3]*=mainimg.w;
 //                                        ouv[i+6]*=mainimg.h;
-                                        ouv[i]-=ouv[i+3]*marker.x+ouv[i+6]*marker.y;
+                                        ouv[i] -= ouv[i + 3] * marker.x + ouv[i + 6] * marker.y;
                                     }
-                                    
+
                             }
                         }
                         break;
@@ -915,141 +986,140 @@ and open the template in the editor.
                 imagenavi();
 //                drawnavi();
 //                drawimage();
-                drag.x=event.offsetX;
-                drag.y=event.offsetY;
+                drag.x = event.offsetX;
+                drag.y = event.offsetY;
             }
-            function propagate(){
-                let anchoring=false;
-                for(let image of images)
-                    if(image.anchored===true){
-                        if(anchoring===false)
-                            anchoring=image;
+            function propagate() {
+                let anchoring = false;
+                for (let image of images)
+                    if (image.anchored === true) {
+                        if (anchoring === false)
+                            anchoring = image;
                         else
-                            anchoring=true;
+                            anchoring = true;
                     }
-                if(anchoring===false){
-                    let keyslice=images[Math.min(images.length-1,(images.length>>1)+1)];
-                    let ouv=[0,atlas.ydim/2,atlas.zdim-1,
-                            atlas.xdim,0,0,
-                            0,0,-atlas.zdim
-                        ];
-                    decomp(ouv,keyslice.width,keyslice.height);
-                    for(let image of images)
-                        recomp(image.ouv=ouv.slice(),image.width,image.height);
-
-                }
-                else if(anchoring!==true){
-                    let ouv=anchoring.ouv;
-                    decomp(ouv,anchoring.width,anchoring.height);
-                    for(let image of images)
-                        recomp(image.ouv=ouv.slice(),image.width,image.height);
-                }
-                else{
-        let linregs=[];
-        for(let i=0;i<11;i++)
-            linregs.push(new LinReg());
-        for(let image of images)
-                    if(image.anchored){
-                let ouv=image.ouv;
-                decomp(ouv,image.width,image.height);
-                for(let i=0;i<ouv.length;i++)
-                    linregs[i].add(image.snr,ouv[i]);
-            }
-        let clearfirst=false;
-        let clearlast=false;
-                if(!images[0].anchored){
-                    let image=images[0];
-                        let w=[];
-                    for(let linreg of linregs)
-                        w.push(linreg.get(image.snr));
-                    orthonormalize(w);
-                    image.ouv=w;
-                    image.anchored=clearfirst=true;
-                }
-                if(!images[images.length-1].anchored){
-                    let image=images[images.length-1];
-                        let w=[];
-                    for(let linreg of linregs)
-                        w.push(linreg.get(image.snr));
-                    orthonormalize(w);
-                    image.ouv=w;
-                    image.anchored=clearlast=true;
-                }
-                let start=0;
-                while(start<images.length-1){
-                    let end=start+1;
-                    while(!images[end].anchored)
-                        end++;
-                    if(end>start+1){
-                    let si=images[start];
-                    let ssnr=si.snr;
-                    let souv=si.ouv;
-                    let ei=images[end];
-                    let esnr=ei.snr;
-                    let eouv=ei.ouv;
-                    let linints=[];
-                    for(let i=0;i<11;i++)
-                        linints.push(new LinInt(ssnr,souv[i],esnr,eouv[i]));
-                    for(let j=start+1;j<end;j++){
-                        let image=images[j];
-                        let snr=image.snr;
-                        let w=[];
-                        for(let linint of linints)
-                            w.push(linint.get(snr));
+                if (anchoring === false) {
+                    let keyslice = images[Math.min(images.length - 1, (images.length >> 1) + 1)];
+                    let ouv = [0, atlas.ydim / 2, atlas.zdim - 1,
+                        atlas.xdim, 0, 0,
+                        0, 0, -atlas.zdim
+                    ];
+                    decomp(ouv, keyslice.width, keyslice.height);
+                    for (let image of images)
+                        recomp(image.ouv = ouv.slice(), image.width, image.height);
+                } else if (anchoring !== true) {
+                    let ouv = anchoring.ouv;
+                    decomp(ouv, anchoring.width, anchoring.height);
+                    for (let image of images)
+                        recomp(image.ouv = ouv.slice(), image.width, image.height);
+                } else {
+                    let linregs = [];
+                    for (let i = 0; i < 11; i++)
+                        linregs.push(new LinReg());
+                    for (let image of images)
+                        if (image.anchored) {
+                            let ouv = image.ouv;
+                            decomp(ouv, image.width, image.height);
+                            for (let i = 0; i < ouv.length; i++)
+                                linregs[i].add(image.snr, ouv[i]);
+                        }
+                    let clearfirst = false;
+                    let clearlast = false;
+                    if (!images[0].anchored) {
+                        let image = images[0];
+                        let w = [];
+                        for (let linreg of linregs)
+                            w.push(linreg.get(image.snr));
                         orthonormalize(w);
-                        image.ouv=w;
-                    }                    
+                        image.ouv = w;
+                        image.anchored = clearfirst = true;
+                    }
+                    if (!images[images.length - 1].anchored) {
+                        let image = images[images.length - 1];
+                        let w = [];
+                        for (let linreg of linregs)
+                            w.push(linreg.get(image.snr));
+                        orthonormalize(w);
+                        image.ouv = w;
+                        image.anchored = clearlast = true;
+                    }
+                    let start = 0;
+                    while (start < images.length - 1) {
+                        let end = start + 1;
+                        while (!images[end].anchored)
+                            end++;
+                        if (end > start + 1) {
+                            let si = images[start];
+                            let ssnr = si.snr;
+                            let souv = si.ouv;
+                            let ei = images[end];
+                            let esnr = ei.snr;
+                            let eouv = ei.ouv;
+                            let linints = [];
+                            for (let i = 0; i < 11; i++)
+                                linints.push(new LinInt(ssnr, souv[i], esnr, eouv[i]));
+                            for (let j = start + 1; j < end; j++) {
+                                let image = images[j];
+                                let snr = image.snr;
+                                let w = [];
+                                for (let linint of linints)
+                                    w.push(linint.get(snr));
+                                orthonormalize(w);
+                                image.ouv = w;
+                            }
+                        }
+                        start = end;
+                    }
+                    if (clearfirst)
+                        images[0].anchored = false;
+                    if (clearlast)
+                        images[images.length - 1].anchored = false;
+                    for (let image of images)
+                        recomp(image.ouv, image.width, image.height);
                 }
-                    start=end;
-                }
-                if(clearfirst)images[0].anchored=false;
-                if(clearlast)images[images.length-1].anchored=false;
-                for(let image of images)
-                    recomp(image.ouv,image.width,image.height);
-                }
-                
+
             }
-            async function save(){
-                if(filename.endsWith(".waln"))
+            async function save() {
+                if (filename.endsWith(".waln"))
                     dosave();
                 else
                     saveas();
             }
-            async function saveas(){
-                const choice=await dppick({
+            async function saveas() {
+                const choice = await dppick({
                     bucket,
                     token,
-                    title:"Save as...",
-                    path:filename.substring(0,filename.lastIndexOf("/")+1),
-                    extensions:[".waln"],
-                    create:".waln",
-                    createdefault:filename.substring(filename.lastIndexOf("/")+1),
-                    createbutton:"Save"
+                    title: "Save as...",
+                    path: filename.substring(0, filename.lastIndexOf("/") + 1),
+                    extensions: [".waln"],
+                    create: ".waln",
+                    createdefault: filename.slice(filename.lastIndexOf("/") + 1, -5) + ".waln",
+                    createbutton: "Save"
                 });
-                if(choice.cancel)
+                if (choice.cancel)
                     return;
-                filename=choice.create || choice.pick;
+                filename = choice.create || choice.pick;
                 dosave();
             }
-            async function dosave(){
-                for(let i=0;i<images.length;i++){
-                    let image=images[i];
-                    if(image.anchored)
-                        series.sections[i].ouv=image.ouv;
+            async function dosave() {
+                for (let i = 0; i < images.length; i++) {
+                    let image = images[i];
+                    if (image.anchored)
+                        series.sections[i].ouv = image.ouv;
                     else
                         delete series.sections[i].ouv;
                 }
-                let upload=await fetch(
-                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${filename}`,{
+                let upload = await fetch(
+                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${filename}`, {
                             method: "PUT",
-                            headers:{
-                                accept:"application/json",
-                                authorization:`Bearer ${token}`
+                            headers: {
+                                accept: "application/json",
+                                authorization: `Bearer ${token}`
                             }
                         }
-                    ).then(response=>response.json());
+                ).then(response => response.json());
                 if (!upload.hasOwnProperty("url")) {
-                    alert("Can't save: "+JSON.stringify(upload));
+                    alert("Can't save: " + JSON.stringify(upload));
                     return;
                 }
                 await fetch(upload.url, {
@@ -1060,114 +1130,114 @@ and open the template in the editor.
                     body: JSON.stringify(series)
                 });
             }
-            function popup(pop){
+            function popup(pop) {
                 document.getElementById("cover").hidden = false;
                 document.getElementById("popup").hidden = false;
-                document.getElementById("popcont").innerHTML=pop;
+                document.getElementById("popcont").innerHTML = pop;
             }
-            function cover(){
+            function cover() {
                 document.getElementById("cover").hidden = true;
                 document.getElementById("popup").hidden = true;
             }
-            async function exprt(){
-                popup("Exporting overlays");
-                let date=new Date();
-                let te=new TextEncoder();
-                
-                let ziplist=[];
-                
-//                let zipfile=new ArrayBuffer(0);
-                
-//                let formdata=new FormData();
-//                formdata.append("zip",new Blob([zipfile],{type:"application/octet-stream"}));
-                let descriptor={
-                    target:series.atlas+".cutlas",
-                    slices:images.map(image=>({filename:image.filename,width:image.width,height:image.height,anchoring:image.ouv}))
-                };
-//                formdata.append("flat",new Blob([JSON.stringify(descriptor,null,1)],{type:"application/json"}),"anchorings.json");
-//                zipfile=await fetch("zipper.php",{method:"POST",body:formdata}).then(response=>response.arrayBuffer());
+            async function exprt() {
+                let date = new Date();
+                let te = new TextEncoder();
 
+                let ziplist = [];
+
+                let descriptor = {
+                    target: series.atlas,
+                    slices: images.map(image => ({filename: image.filename, width: image.width, height: image.height, anchoring: image.ouv}))
+                };
                 ziplist.push({
-                    name:"anchorings.json",
+                    name: "anchorings.json",
                     date,
-                    data:te.encode(JSON.stringify(descriptor,null,1))
+                    data: te.encode(JSON.stringify(descriptor, null, 1))
                 });
-                
-                for(let i=0;i<images.length;i++){
-                    let image=images[i];
-                    popup(`${i+1}/${images.length} ${image.filename}`);
-//                    /*let*/ formdata=new FormData();
-//                    formdata.append("zip",new Blob([zipfile],{type:"application/octet-stream"}));
-                    
-                    let slice=dataslice(image.ouv);
-                    let rebuf=new ArrayBuffer(slice.data.byteLength+9);
-                    let dv=new DataView(rebuf);
-                    dv.setUint8(0,2);
-                    dv.setUint32(1,slice.width,false);
-                    dv.setUint32(5,slice.height,false);
-                    for(let pos=0;pos<slice.data.length;pos++){
-//                        dv.setUint16(9+pos*2,slice.data[pos],false);
-                        dv.setUint16(9+pos*2,atlas.hackmap[atlas.remap[slice.data[pos]]],false);
-                    }
-//                    formdata.append("flat",new Blob([rebuf],{type:"application/octet-stream"}),image.flat);
-//                    zipfile=await fetch("zipper.php",{method:"POST",body:formdata}).then(response=>response.arrayBuffer());
+
+                for (let i = 0; i < images.length; i++) {
+                    let image = images[i];
+                    popup(`${i + 1}/${images.length} ${image.filename}`);
+
+                    let slice = dataslice(image.ouv);
+//                    let rebuf=new ArrayBuffer(slice.data.byteLength+9);
+//                    let dv=new DataView(rebuf);
+//                    dv.setUint8(0,2);
+//                    dv.setUint32(1,slice.width,false);
+//                    dv.setUint32(5,slice.height,false);
+//                    for(let pos=0;pos<slice.data.length;pos++){
+//                        dv.setUint16(9+pos*2,atlas.hackmap[atlas.remap[slice.data[pos]]],false);
+//                    }
+//                    ziplist.push({
+//                        name:image.flat,
+//                        date,
+//                        data:new Uint8Array(rebuf)
+//                    });
+
+                    slice.aid = series.atlas;
                     ziplist.push({
-                        name:image.flat,
+                        name: image.flat.substring(0, image.flat.length - 5) + ".seg",
                         date,
-                        data:new Uint8Array(rebuf)
+                        data: segrle(slice)
                     });
-                    
-                    ziplist.push({
-                        name:image.flat.substring(0,image.flat.length-5)+".seg",
-                        date,
-                        data:segrle(slice)
-                    });
-                    
-//                    formdata=new FormData();
-//                    formdata.append("zip",new Blob([zipfile],{type:"application/octet-stream"}));
-                    
-                    let canvas=document.createElement("canvas");
-                    canvas.width=slice.width;
-                    canvas.height=slice.height;
-                    let ctx=canvas.getContext("2d");
-                    let idata=ctx.createImageData(slice.width,slice.height);
-                    let data=idata.data;
-                    for(let pos=0;pos<slice.data.length;pos++){
-                        let v=slice.data[pos];
-                        if(v!==0){
-                            let l=atlas.labels[v];
-                            data[pos*4]=l.r;
-                            data[pos*4+1]=l.g;
-                            data[pos*4+2]=l.b;
-                            data[pos*4+3]=255;
+
+                    let canvas = document.createElement("canvas");
+                    canvas.width = slice.width;
+                    canvas.height = slice.height;
+                    let ctx = canvas.getContext("2d");
+                    let idata = ctx.createImageData(slice.width, slice.height);
+                    let data = idata.data;
+                    for (let pos = 0; pos < slice.data.length; pos++) {
+                        let v = slice.data[pos];
+                        if (v !== 0) {
+                            let l = atlas.labels[v];
+                            data[pos * 4] = l.r;
+                            data[pos * 4 + 1] = l.g;
+                            data[pos * 4 + 2] = l.b;
+                            data[pos * 4 + 3] = 255;
                         }
                     }
-                    ctx.putImageData(idata,0,0);
-//                    formdata.append("flat",await new Promise(resolve=>canvas.toBlob(blob=>resolve(blob))),image.flat+".png");
-//                    zipfile=await fetch("zipper.php",{method:"POST",body:formdata}).then(response=>response.arrayBuffer());
+                    ctx.putImageData(idata, 0, 0);
                     ziplist.push({
-                        name:image.flat.substring(0,image.flat.length-5)+".png",
+                        name: image.flat.substring(0, image.flat.length - 5) + ".png",
                         date,
-                        data:new Uint8Array(await new Promise(resolve=>canvas.toBlob(blob=>resolve(blob.arrayBuffer()))))
+                        data: new Uint8Array(await new Promise(resolve => canvas.toBlob(blob => resolve(blob.arrayBuffer()))))
                     });
                 }
-                
-//                let zipname=args["filename"].replace(".json",".zip");
-//                let upload = await fetch(`bucket.php?${argspack({filename:zipname,put:true})}`).then(response => response.json());
-                let zipfile=zipstore(ziplist);
-                let pos=filename.lastIndexOf(".");
-                let zipname=filename.substr(0,pos)+".zip";
-                let upload=await fetch(
-                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${zipname}`,{
+
+                let zipfile = zipstore(ziplist);
+
+//                let pos = filename.lastIndexOf(".");
+//                let zipname = filename.substr(0, pos) + ".zip";
+
+                const choice = await dppick({
+                    bucket,
+                    token,
+                    title: "Export overlays...",
+                    path: filename.substring(0, filename.lastIndexOf("/") + 1),
+                    extensions: [".zip"],
+                    create: ".zip",
+                    createdefault: filename.slice(filename.lastIndexOf("/") + 1, -5) + ".zip",
+                    createbutton: "Export"
+                });
+                if (choice.cancel) {
+                    cover();
+                    return;
+                }
+                let zipname = choice.create || choice.pick;
+
+                popup("Uploading overlays");
+                let upload = await fetch(
+                        `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${zipname}`, {
                             method: "PUT",
-                            headers:{
-                                accept:"application/json",
-                                authorization:`Bearer ${token}`
+                            headers: {
+                                accept: "application/json",
+                                authorization: `Bearer ${token}`
                             }
                         }
-                    ).then(response=>response.json());
+                ).then(response => response.json());
                 if (!upload.hasOwnProperty("url")) {
-                    alert("Can't save: "+JSON.stringify(upload));
+                    alert("Can't save: " + JSON.stringify(upload));
                     return;
                 }
                 await fetch(upload.url, {
@@ -1179,136 +1249,137 @@ and open the template in the editor.
                 });
                 cover();
             }
-            function imagenavi(){
+            function imagenavi() {
                 drawimage();
                 drawnavi();
                 angles();
             }
-            function angles(){
-                if(!ready)return;
-                series.mode=document.getElementById("mode").selectedIndex;
-                let rots=rot123uvfrom(ouv,series.mode);
-                document.getElementById("rot1").value=deg(rots[0]).toFixed(2);
-                document.getElementById("rot2").value=deg(rots[1]).toFixed(2);
-                document.getElementById("rot3").value=deg(rots[2]).toFixed(2);
+            function angles() {
+                if (!ready)
+                    return;
+                series.mode = document.getElementById("mode").selectedIndex;
+                let rots = rot123uvfrom(ouv, series.mode);
+                document.getElementById("rot1").value = deg(rots[0]).toFixed(2);
+                document.getElementById("rot2").value = deg(rots[1]).toFixed(2);
+                document.getElementById("rot3").value = deg(rots[2]).toFixed(2);
             }
-            function rot123uvfrom(ouv,mode){
-                let u=ouv.slice(3,6);
-                let v=ouv.slice(6);
-                let ul=normalize(u,0);
-                let vl=normalize(v,0);
-                let n=cross(u,v);
-                normalize(n,0);
-                let rot1,rot2,baseu;
-                switch(mode){
+            function rot123uvfrom(ouv, mode) {
+                let u = ouv.slice(3, 6);
+                let v = ouv.slice(6);
+                let ul = normalize(u, 0);
+                let vl = normalize(v, 0);
+                let n = cross(u, v);
+                normalize(n, 0);
+                let rot1, rot2, baseu;
+                switch (mode) {
                     case 0:
-                        rot1=Math.asin(clamp(n[2]));
-                        rot2=Math.atan2(n[0],n[1]);
-                        baseu=[Math.cos(rot2),-Math.sin(rot2),0];
+                        rot1 = Math.asin(clamp(n[2]));
+                        rot2 = Math.atan2(n[0], n[1]);
+                        baseu = [Math.cos(rot2), -Math.sin(rot2), 0];
                         break;
                     case 1:
-                        rot1=-Math.asin(clamp(n[2]));
-                        rot2=-Math.atan2(n[1],n[0]);
-                        baseu=[-Math.sin(rot2),-Math.cos(rot2),0];
+                        rot1 = -Math.asin(clamp(n[2]));
+                        rot2 = -Math.atan2(n[1], n[0]);
+                        baseu = [-Math.sin(rot2), -Math.cos(rot2), 0];
                         break;
                     case 2:
-                        rot1=Math.asin(clamp(n[0]));
-                        rot2=-Math.atan2(n[1],n[2]);
-                        baseu=[0,-Math.cos(rot2),-Math.sin(rot2)];
+                        rot1 = Math.asin(clamp(n[0]));
+                        rot2 = -Math.atan2(n[1], n[2]);
+                        baseu = [0, -Math.cos(rot2), -Math.sin(rot2)];
                         break;
                 }
-                let rot3=Math.acos(clamp(dot(u,baseu)))*Math.sign(dot(cross(u,baseu),n));
-                return [rot1,rot2,rot3,ul,vl];
+                let rot3 = Math.acos(clamp(dot(u, baseu))) * Math.sign(dot(cross(u, baseu), n));
+                return [rot1, rot2, rot3, ul, vl];
             }
-            function docalc(){
-                let rot1=rad(document.getElementById("rot1").valueAsNumber);
-                let rot2=rad(document.getElementById("rot2").valueAsNumber);
-                let rot3=rad(document.getElementById("rot3").valueAsNumber);
-                fromrot123uv(ouv,[rot1,rot2,rot3,len3(ouv,3),len3(ouv,6)],document.getElementById("mode").selectedIndex);
+            function docalc() {
+                let rot1 = rad(document.getElementById("rot1").valueAsNumber);
+                let rot2 = rad(document.getElementById("rot2").valueAsNumber);
+                let rot3 = rad(document.getElementById("rot3").valueAsNumber);
+                fromrot123uv(ouv, [rot1, rot2, rot3, len3(ouv, 3), len3(ouv, 6)], document.getElementById("mode").selectedIndex);
                 imagenavi();
             }
-            function fromrot123uv(ouv,rot123uv,mode){
-                let [rot1,rot2,rot3,u,v]=rot123uv;
-                let scaladd=(u,s1,v,s2,t,i)=>{
-                    t[i]=u[0]*s1+v[0]*s2;
-                    t[i+1]=u[1]*s1+v[1]*s2;
-                    t[i+2]=u[2]*s1+v[2]*s2;
+            function fromrot123uv(ouv, rot123uv, mode) {
+                let [rot1, rot2, rot3, u, v] = rot123uv;
+                let scaladd = (u, s1, v, s2, t, i) => {
+                    t[i] = u[0] * s1 + v[0] * s2;
+                    t[i + 1] = u[1] * s1 + v[1] * s2;
+                    t[i + 2] = u[2] * s1 + v[2] * s2;
                 };
-                for(let i=0;i<3;i++)
-                    ouv[i]+=(ouv[i+3]+ouv[i+6])/2;
-                let baseu,basev;
-                switch(mode){
+                for (let i = 0; i < 3; i++)
+                    ouv[i] += (ouv[i + 3] + ouv[i + 6]) / 2;
+                let baseu, basev;
+                switch (mode) {
                     case 0:
-                        baseu=[Math.cos(rot2),-Math.sin(rot2),0];
-                        basev=[Math.sin(rot1)*Math.sin(rot2),Math.sin(rot1)*Math.cos(rot2),-Math.cos(rot1)];
+                        baseu = [Math.cos(rot2), -Math.sin(rot2), 0];
+                        basev = [Math.sin(rot1) * Math.sin(rot2), Math.sin(rot1) * Math.cos(rot2), -Math.cos(rot1)];
                         break;
                     case 1:
-                        baseu=[-Math.sin(rot2),-Math.cos(rot2),0];
-                        basev=[-Math.sin(rot1)*Math.cos(rot2),Math.sin(rot1)*Math.sin(rot2),-Math.cos(rot1)];
+                        baseu = [-Math.sin(rot2), -Math.cos(rot2), 0];
+                        basev = [-Math.sin(rot1) * Math.cos(rot2), Math.sin(rot1) * Math.sin(rot2), -Math.cos(rot1)];
                         break;
                     case 2:
-                        baseu=[0,-Math.cos(rot2),-Math.sin(rot2)];
-                        basev=[Math.cos(rot1),Math.sin(rot1)*Math.sin(rot2),-Math.sin(rot1)*Math.cos(rot2)];
+                        baseu = [0, -Math.cos(rot2), -Math.sin(rot2)];
+                        basev = [Math.cos(rot1), Math.sin(rot1) * Math.sin(rot2), -Math.sin(rot1) * Math.cos(rot2)];
                         break;
                 }
-                scaladd(baseu,Math.cos(rot3),basev,-Math.sin(rot3),ouv,3);
-                scaladd(baseu,Math.sin(rot3),basev,Math.cos(rot3),ouv,6);
+                scaladd(baseu, Math.cos(rot3), basev, -Math.sin(rot3), ouv, 3);
+                scaladd(baseu, Math.sin(rot3), basev, Math.cos(rot3), ouv, 6);
                 for (let i = 0; i < 3; i++) {
                     ouv[i + 3] *= u;
                     ouv[i + 6] *= v;
                     ouv[i] -= (ouv[i + 3] + ouv[i + 6]) / 2;
                 }
             }
-            function unify(){
-                let mode=document.getElementById("mode").selectedIndex;
-                let [rot1,rot2]=rot123uvfrom(ouv,mode);
-                for(let image of images){
-                    let rot123uv=rot123uvfrom(image.ouv,mode);
-                    rot123uv[0]=rot1;
-                    rot123uv[1]=rot2;
-                    fromrot123uv(image.ouv,rot123uv,mode);
+            function unify() {
+                let mode = document.getElementById("mode").selectedIndex;
+                let [rot1, rot2] = rot123uvfrom(ouv, mode);
+                for (let image of images) {
+                    let rot123uv = rot123uvfrom(image.ouv, mode);
+                    rot123uv[0] = rot1;
+                    rot123uv[1] = rot2;
+                    fromrot123uv(image.ouv, rot123uv, mode);
                 }
                 drawstrip();
             }
-            function clickstep(coord,dir){
-                ouv[coord]+=document.getElementById("panstep").valueAsNumber*dir;
+            function clickstep(coord, dir) {
+                ouv[coord] += document.getElementById("panstep").valueAsNumber * dir;
                 imagenavi();
             }
-            function clickrot(c1,c2,dir){
-                const angle=document.getElementById("rotstep").valueAsNumber*dir*Math.PI/180;
-                const sincos=[Math.sin(angle),Math.cos(angle)];
+            function clickrot(c1, c2, dir) {
+                const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
+                const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
-                rot(ouv,3+c1,3+c2,sincos);
-                rot(ouv,6+c1,6+c2,sincos);
+                rot(ouv, 3 + c1, 3 + c2, sincos);
+                rot(ouv, 6 + c1, 6 + c2, sincos);
                 recomp(ouv);
                 imagenavi();
             }
-            function mainstep(x,y){
-                let step=document.getElementById("panstep").valueAsNumber;
+            function mainstep(x, y) {
+                let step = document.getElementById("panstep").valueAsNumber;
                 decomp(ouv);
-                for(let i=0;i<3;i++){
-                    ouv[i]+=ouv[i+3]*step*x;
-                    ouv[i]+=ouv[i+6]*step*y;
+                for (let i = 0; i < 3; i++) {
+                    ouv[i] += ouv[i + 3] * step * x;
+                    ouv[i] += ouv[i + 6] * step * y;
                 }
                 recomp(ouv);
                 imagenavi();
             }
-            function mainrot(dir){
-                const angle=document.getElementById("rotstep").valueAsNumber*dir*Math.PI/180;
-                const sincos=[Math.sin(angle),Math.cos(angle)];
+            function mainrot(dir) {
+                const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
+                const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
-                let u=ouv.slice(3,6);
-                let v=ouv.slice(6);
-                for(let i=0;i<3;i++){
-                    ouv[i+3]=u[i]*sincos[1]-v[i]*sincos[0];
-                    ouv[i+6]=u[i]*sincos[0]+v[i]*sincos[1];
+                let u = ouv.slice(3, 6);
+                let v = ouv.slice(6);
+                for (let i = 0; i < 3; i++) {
+                    ouv[i + 3] = u[i] * sincos[1] - v[i] * sincos[0];
+                    ouv[i + 6] = u[i] * sincos[0] + v[i] * sincos[1];
                 }
                 recomp(ouv);
                 imagenavi();
             }
-            function toggleHelp(){
-                const help=document.getElementById("help");
-                help.style.display=help.style.display!=="block"?"block":"none";
+            function toggleHelp() {
+                const help = document.getElementById("help");
+                help.style.display = help.style.display !== "block" ? "block" : "none";
             }
         </script>
     </head>
@@ -1320,27 +1391,27 @@ and open the template in the editor.
             Bucket:
             <button onclick="save()">Save</button><button onclick="saveas()">Save as...</button><button onclick="exprt()">Export overlays</button>
             <div class="ctrlrow">
-            <select id="modality" oninput="drawimage();drawstrip();drawnavi();" disabled>
-                <option>Segmentation</option>
-                <option>Template</option>
-            </select>
+                <select id="modality" oninput="drawimage();drawstrip();drawnavi();" disabled>
+                    <option>Segmentation</option>
+                    <option>Template</option>
+                </select>
                 &#x2194;&#x2195;<input id="panstep" type="number" min="0" max="20" step="0.1" value="1">
                 <!--1f504-->&#x21BA;<input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">
             </div>
             <div class="ctrlrow">
-            Overlay:
-            <input id="mainalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawimage()">
-            <input id="mainoutline" type="color" value="#0000FF" oninput="drawimage()">
+                Overlay:
+                <input id="mainalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawimage()">
+                <input id="mainoutline" type="color" value="#0000FF" oninput="drawimage()">
             </div>
             <div class="ctrlrow">
-            Filmstrip:
-            <input id="stripalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawstrip()">
-            <input id="stripoutline" type="color" value="#0000FF" oninput="drawstrip()">
+                Filmstrip:
+                <input id="stripalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawstrip()">
+                <input id="stripoutline" type="color" value="#0000FF" oninput="drawstrip()">
             </div>
             <hr>
             <div class="ctrlrow" id="gray" disabled="true">
-            Brighten:
-            <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">
+                Brighten:
+                <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">
             </div>
             <hr>
             <button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>
@@ -1359,10 +1430,10 @@ and open the template in the editor.
         <div id="hsiz" class="hsep" onmousedown="hresize(event)"></div>
         <div id="main">
             <div class="stepgroup">
-                <button onclick="mainstep(1,0)">&#x25c0;</button>
-                <button onclick="mainstep(-1,0)">&#x25b6;</button>
-                <button onclick="mainstep(0,1)">&#x25b2;</button>
-                <button onclick="mainstep(0,-1)">&#x25bc;</button>
+                <button onclick="mainstep(1, 0)">&#x25c0;</button>
+                <button onclick="mainstep(-1, 0)">&#x25b6;</button>
+                <button onclick="mainstep(0, 1)">&#x25b2;</button>
+                <button onclick="mainstep(0, -1)">&#x25bc;</button>
                 <button onclick="mainrot(-1)">&#x21b6;</button>
                 <button onclick="mainrot(1)">&#x21b7;</button>
             </div>
@@ -1371,7 +1442,7 @@ and open the template in the editor.
                     onmousemove="mainmove(event)"
                     onkeydown="maindown(event)"
                     onmouseover="event.target.focus()"
-                    onmouseout="event.target.blur()"></canvas>
+                    onmouseout="event.target.blur();mainmove(event)"></canvas>
         </div>
         <div id="hsep" class="hsep"></div>
         <div id="navi">
@@ -1387,30 +1458,31 @@ and open the template in the editor.
             <div id="popcont"></div>
         </div>
         <div id="group1" class="stepgroup">
-            <button onclick="clickstep(1,1)">&#x25c0;</button>
-            <button onclick="clickstep(1,-1)">&#x25b6;</button>
-            <button onclick="clickstep(2,1)">&#x25b2;</button>
-            <button onclick="clickstep(2,-1)">&#x25bc;</button>
-            <button onclick="clickrot(1,2,-1)">&#x21b6;</button>
-            <button onclick="clickrot(1,2,1)">&#x21b7;</button>
+            <button onclick="clickstep(1, 1)">&#x25c0;</button>
+            <button onclick="clickstep(1, -1)">&#x25b6;</button>
+            <button onclick="clickstep(2, 1)">&#x25b2;</button>
+            <button onclick="clickstep(2, -1)">&#x25bc;</button>
+            <button onclick="clickrot(1, 2, -1)">&#x21b6;</button>
+            <button onclick="clickrot(1, 2, 1)">&#x21b7;</button>
         </div>
         <div id="group2" class="stepgroup">
-            <button onclick="clickstep(1,1)">&#x25c0;</button>
-            <button onclick="clickstep(1,-1)">&#x25b6;</button>
-            <button onclick="clickstep(0,1)">&#x25b2;</button>
-            <button onclick="clickstep(0,-1)">&#x25bc;</button>
-            <button onclick="clickrot(1,0,-1)">&#x21b6;</button>
-            <button onclick="clickrot(1,0,1)">&#x21b7;</button>
+            <button onclick="clickstep(1, 1)">&#x25c0;</button>
+            <button onclick="clickstep(1, -1)">&#x25b6;</button>
+            <button onclick="clickstep(0, 1)">&#x25b2;</button>
+            <button onclick="clickstep(0, -1)">&#x25bc;</button>
+            <button onclick="clickrot(1, 0, -1)">&#x21b6;</button>
+            <button onclick="clickrot(1, 0, 1)">&#x21b7;</button>
         </div>
         <div id="group3" class="stepgroup">
-            <button onclick="clickstep(0,-1)">&#x25c0;</button>
-            <button onclick="clickstep(0,1)">&#x25b6;</button>
-            <button onclick="clickstep(2,1)">&#x25b2;</button>
-            <button onclick="clickstep(2,-1)">&#x25bc;</button>
-            <button onclick="clickrot(0,2,1)">&#x21b6;</button>
-            <button onclick="clickrot(0,2,-1)">&#x21b7;</button>
+            <button onclick="clickstep(0, -1)">&#x25c0;</button>
+            <button onclick="clickstep(0, 1)">&#x25b6;</button>
+            <button onclick="clickstep(2, 1)">&#x25b2;</button>
+            <button onclick="clickstep(2, -1)">&#x25bc;</button>
+            <button onclick="clickrot(0, 2, 1)">&#x21b6;</button>
+            <button onclick="clickrot(0, 2, -1)">&#x21b7;</button>
         </div>
         <div id="help">
+            <div style="text-align: center; width: 100%;">WebAlign v0.7</div><br>
             Navigation views:
             <ul>
                 <li>Move overlay via dragging the yellow dot with the mouse</li>

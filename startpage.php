@@ -160,6 +160,7 @@ $json["token"]=$token;
             Enter name of image-chunk collab: <input id="collab" oninput="trycollect()"><br>
             Target atlas:
             <select id="atlas">
+                <option value="WHS_SD_Rat_v4_39um">WHS SD Rat v4 39um</option>
                 <option value="WHS_SD_Rat_v3_39um">WHS SD Rat v3 39um</option>
                 <option value="ABA_Mouse_CCFv3_2017_25um">ABA Mouse CCFv3 2017 25um</option>
             </select><br>

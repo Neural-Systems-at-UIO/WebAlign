@@ -55,7 +55,8 @@ function drawslice(ouv,ctx,x,y,width,height,mode){
     let imagedata=ctx.getImageData(x,y,width,height);
     width=imagedata.width;
     height=imagedata.height;
-    let slicedata=dataslice(ouv,width,height).data;
+    const slice=dataslice(ouv,width,height);
+    let slicedata=slice.data;
     let graydata=document.getElementById("modality").selectedIndex==1?grayslice(ouv,width,height).data:false;
     let pixeldata=imagedata.data;
     if(graydata){
@@ -110,6 +111,7 @@ function drawslice(ouv,ctx,x,y,width,height,mode){
         }
     }
     ctx.putImageData(imagedata,x,y);
+    return slice;
 }
 
 //function canvaslice(data){

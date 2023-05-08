@@ -1,7 +1,12 @@
-function segrle({width,height,data}){
+function segrle({aid,width,height,data}){
     let buf=new Uint8Array(width*height);
     let pos=0;
-    bytes(new TextEncoder().encode("SegRLEv1"));
+    const te=new TextEncoder();
+    bytes(te.encode("SegRLEv1"));
+    
+    const aidbuf=te.encode(aid);
+    code(aidbuf.length);
+    bytes(aidbuf);
     
     const stats=new Map();
     for(const v of data)
