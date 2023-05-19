@@ -162,11 +162,11 @@ and open the template in the editor.
                                 else
                                     popup(event.data);
                             });
-//                new Worker("getgray.js?" + series.atlas).onmessage = event => {
-//                    gray = new Uint8Array(event.data);
-//                    document.getElementById("modality").disabled = false;
-//                };
-////                let worker=new Worker("getlas.js?"+args.get("atlas"));
+                new Worker("getgray.js?" + series.atlas).onmessage = event => {
+                    gray = new Uint8Array(event.data);
+                    document.getElementById("modality").disabled = false;
+                };
+//                let worker=new Worker("getlas.js?"+args.get("atlas"));
 
                 const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
                 for (let section of series.sections) {
