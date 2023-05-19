@@ -28,8 +28,20 @@ $json["token"]=$token;
         <meta charset="UTF-8">
         <title></title>
         <script src="dppick.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/inflater.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
         <script>
             const state=<?php echo json_encode($json);?>;
+            async function dpjson(params) {
+                const response = await fetch(
+                        `https://data-proxy.ebrains.eu/api/v1/buckets/${params}`,{
+                        headers:{
+                            accept:"application/json",
+                            authorization:`Bearer ${state.token}`
+                        }
+                    });
+                return response.json();
+            }
             async function startup(){
                 const choice=await dppick({
                     bucket:state["clb-collab-id"],
@@ -60,68 +72,101 @@ $json["token"]=$token;
                 startup();
             }
             
-            let collecting;
-            let recollect;
             let collection;
+            let ctime;
+            function tryshow(){
+                document.getElementById("filebody").innerHTML=
+                        collection.map(item=>`<tr><td>${item.filename.split("/").slice(-1)[0]}</td><td>${item.format}</td>
+                            <td>${item.width}</td><td>${item.height}</td><td>${item.tilesize}</td><td>${item.overlap}</td></tr>`).join("");
+                document.querySelector("button").disabled=document.getElementById("filetable").hidden=collection.length===0;
+                if(collection.length)document.getElementById("log").innerText="Ready.";
+            }
+            
+            let dzipbundles;
             let bucket;
+            const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
             async function trycollect(){
-                if(collecting){
-                    recollect=true;
-                    return;
-                }
+                const current=ctime=Date.now();
                 const button=document.querySelector("button");
                 button.disabled=true;
                 const prg=document.getElementById("log");
+                document.getElementById("filetable").hidden=true;
+                const btns=document.getElementById("dzipbuttons");
+                btns.hidden=true;
+                dzipbundles=new Map();
 
-                collecting=true;
                 collection=[];
                 
                 try{
                     bucket=document.getElementById("collab").value.replaceAll(/[^-\w().!]/g, "");
-                    const result=await fetch(
-                            `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}?delimiter=/`,{
-                                headers:{
-                                    accept:"application/json",
-                                    authorization:`Bearer ${state.token}`
-                                }
+                    const dzips = await dpjson(`${bucket}?prefix=${wfprefix}`);
+                    if(dzips.objects.length<2){
+                        const result = await dpjson(`${bucket}?delimiter=/`);
+                        if(result.hasOwnProperty("objects")){
+                            const images=result.objects.filter(item=>item.hasOwnProperty("subdir")&&item.subdir.includes("."));
+                            for(const image of images){
+                                prg.innerText="Fetching DZI "+(collection.length+1)+"/"+images.length;
+                                const subdir=image.subdir;
+                                const pos=subdir.lastIndexOf(".");
+                                const name=subdir.substring(0,pos);
+                                const urljson=await dpjson(`${bucket}/${subdir+name}.dzi?redirect=false`);
+                                const dzi=await fetch(urljson.url).then(response=>response.text());
+                                if(current!==ctime)
+                                    return;
+                                collection.push({
+                                    filename:subdir.substring(0,subdir.length-1),
+                                    width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
+                                    height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
+                                    tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
+                                    overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
+                                    format:dzi.match(/Format="([^"]+)"/m)[1]
+                                });
                             }
-                        ).then(response=>response.json());
-                    if(result.hasOwnProperty("objects")){
-                        const images=result.objects.filter(item=>item.hasOwnProperty("subdir")&&item.subdir.includes("."));
-                        for(const image of images){
-                            prg.innerText="Fetching DZI "+(collection.length+1)+"/"+images.length;
-                            const subdir=image.subdir;
-                            const pos=subdir.lastIndexOf(".");
-                            const name=subdir.substring(0,pos);
-                            const url=await fetch(
-                                    `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${subdir+name}.dzi?redirect=false`,{
-                                        headers:{
-                                            accept:"application/json",
-                                            authorization:`Bearer ${state.token}`
-                                        }
-                                    }
-                                ).then(response=>response.json()).then(json=>json.url);
-                            const dzi=await fetch(url).then(response=>response.text());
-                            collection.push({
-                                filename:subdir.substring(0,subdir.length-1),
-                                width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
-                                height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
-                                tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
-                                overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
-                                format:dzi.match(/Format="([^"]+)"/m)[1]
-                            });
                         }
+                    } else {
+                        for(const item of dzips.objects) {
+                            const parts=item.name.substring(wfprefix.length).split("/");
+                            if(parts.length===2 && parts[1].endsWith(".dzip")) {
+                                if(!dzipbundles.has(parts[0]))
+                                    dzipbundles.set(parts[0],[]);
+                                dzipbundles.get(parts[0]).push(parts[1]);
+                            }
+                        }
+                        dzipbundles.forEach((v,k)=>btns.innerHTML+=`<button onclick="dzicollect('${k}')">${k} (${v.length})</button> `);
+                        btns.hidden=dzipbundles.size===0;
                     }
                 }catch(ex){console.log(ex);}
-                
-                collecting=false;
-                if(recollect){
-                    recollect=false;
-                    trycollect();
-                }else{
-                    prg.innerText="Raw series:\n"+JSON.stringify(collection,null,1);
-                    button.disabled=collection.length===0;
+                tryshow();
+            }
+            async function dzicollect(dzipbundle){
+                const current=ctime=Date.now();
+                const prg=document.getElementById("log");
+                collection=[];
+                const dzips=dzipbundles.get(dzipbundle);
+                for(let i=0;i<dzips.length;i++) {
+                    if(current!==ctime)return;
+                    prg.innerText="Fetching DZI "+(collection.length+1)+"/"+dzips.length;
+                    const dzip=dzips[i];
+                    const zipdir=await netunzip(
+                            ()=>dpjson(`${bucket}/${wfprefix}${dzipbundle}/${dzip}?redirect=false`).then(json=>json.url));
+                    for(const [_,entry] of zipdir.entries) {
+                        if(entry.name.endsWith(".dzi")) {
+                            const data=await zipdir.get(entry);
+                            if(current!==ctime)return;
+                            const dzi=new TextDecoder().decode(data);
+                            collection.push({
+                                filename:dzipbundle+"/"+dzip,
+                                    width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
+                                    height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
+                                    tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
+                                    overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
+                                    format:dzi.match(/Format="([^"]+)"/m)[1]
+                            });
+                            break;
+                        }
+                    }
                 }
+                tryshow();
             }
             async function create(){
                 document.querySelector("button").disabled=true;
@@ -164,8 +209,15 @@ $json["token"]=$token;
                 <option value="WHS_SD_Rat_v3_39um">WHS SD Rat v3 39um</option>
                 <option value="ABA_Mouse_CCFv3_2017_25um">ABA Mouse CCFv3 2017 25um</option>
             </select><br>
-            <button onclick="create()" disabled>Create</button><button onclick="cancel()">Cancel</button><br>
+            <button onclick="create()" disabled>Create</button><button onclick="cancel()">Cancel</button>
             <pre id="log"></pre>
+            <div id="dzipbuttons"></div>
+            <table id="filetable">
+                <thead>
+                    <th>name</th><th>format</th><th>width</th><th>height</th><th>tilesize</th><th>overlap</th>
+                </thead>
+                <tbody id="filebody"></tbody>
+            </table>
         </div>
     </body>
 </html>

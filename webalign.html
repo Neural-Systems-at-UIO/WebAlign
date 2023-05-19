@@ -126,6 +126,8 @@ and open the template in the editor.
         <!--<script src="dzimage.js"></script>-->
         <script src="segrle.js"></script>
         <script src="dppick.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/inflater.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
         <script>
             let args = JSON.parse(decodeURIComponent(location.search.substring(1)));
             const bucket = args["clb-collab-id"];
@@ -160,21 +162,31 @@ and open the template in the editor.
                                 else
                                     popup(event.data);
                             });
-                new Worker("getgray.js?" + series.atlas).onmessage = event => {
-                    gray = new Uint8Array(event.data);
-                    document.getElementById("modality").disabled = false;
-                };
-//                let worker=new Worker("getlas.js?"+args.get("atlas"));
+//                new Worker("getgray.js?" + series.atlas).onmessage = event => {
+//                    gray = new Uint8Array(event.data);
+//                    document.getElementById("modality").disabled = false;
+//                };
+////                let worker=new Worker("getlas.js?"+args.get("atlas"));
 
+                const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
                 for (let section of series.sections) {
                     // {"name":"hbp-00167-641_2001_2561_s001.tif","width":22500,"height":17500,"tilesize":254,"overlap":1,"format":"png"}
-                    let fullname = section.filename;
-                    let pos = fullname.lastIndexOf(".");
-                    let name = fullname.substring(0, pos);
+                    const fullname = section.filename;
+                    let image;
+                    if(!fullname.endsWith(".dzip")){
+                        const pos = fullname.lastIndexOf(".");
+                        const name = fullname.substring(0, pos);
 
-                    let image = {
-                        ...section, base: series.bucket + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
-                    };
+
+                        image = {
+                            ...section, base: series.bucket + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
+                        };
+                    } else {
+                        // "filename":"10000pxtest/2022-268_InjectionSite_5X_Overview_s026.dzip"
+                        const dzip=`${series.bucket}/.nesysWorkflowFiles/zippedPyramids/${fullname}`;
+                        const name=fullname.slice(fullname.lastIndexOf("/")+1,-".dzip".length);
+                        image = {...section,filename:name,dzip,base:name+"_files/",flat: name + ".flat"};
+                    }
 
                     let w = image.width;
                     let h = image.height;
@@ -286,30 +298,27 @@ and open the template in the editor.
 //                cnv.width=parent.offsetWidth;
 //                cnv.height=parent.offsetHeight;
                 let ctx = cnv.getContext("2d");
-                ctx.clearRect(0, 0, cnv.width, cnv.height);
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = "red";
-                ctx.strokeRect(0.5, 0.5, cnv.width - 1, cnv.height - 1);
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(cnv.width, cnv.height);
-                ctx.moveTo(0, cnv.height);
-                ctx.lineTo(cnv.width, 0);
-                ctx.stroke();
+                ctx.save();
+                ctx.fillStyle="lightgray";
+                ctx.fillRect(0, 0, cnv.width, cnv.height);
+                ctx.restore();
+//                ctx.clearRect(0, 0, cnv.width, cnv.height);
+//                ctx.lineWidth = 1;
+//                ctx.strokeStyle = "red";
+//                ctx.strokeRect(0.5, 0.5, cnv.width - 1, cnv.height - 1);
+//                ctx.beginPath();
+//                ctx.moveTo(0, 0);
+//                ctx.lineTo(cnv.width, cnv.height);
+//                ctx.moveTo(0, cnv.height);
+//                ctx.lineTo(cnv.width, 0);
+//                ctx.stroke();
             }
 
             let strippos;
             let stripidx;
-            let stripdrawing = false;
-            let stripredraw = false;
             async function drawstrip() {
                 if (!ready)
                     return;
-                stripredraw = false;
-                if (stripdrawing) {
-                    stripredraw = true;
-                    return;
-                }
 
                 if (strippos > fsw - width)
                     strippos = fsw - width;
@@ -323,7 +332,6 @@ and open the template in the editor.
                 ctx.fillStyle = "black";
 
                 let alpha = document.getElementById("stripalpha").valueAsNumber;
-//                if(alpha>0){ // todo: rate limit
                 let so = document.getElementById("stripoutline");
                 so.disabled = alpha < 100;
                 if (so.disabled)
@@ -331,20 +339,42 @@ and open the template in the editor.
                 else
                     alpha = parseInt(so.value.substring(1), 16);
 
-                for (let image of images)
+                for (const image of images)
                     if (image.fsx - strippos >= -image.fsw && image.fsx - strippos <= width) {
                         if (image === current) {
                             ctx.fillStyle = "orange";
                             ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
                             ctx.fillStyle = "black";
                         }
-                        if (image.hasOwnProperty("icon")) {
+                        const icon=image.icon;
+                        if (typeof icon === "object") {
                             ctx.drawImage(image.icon, image.fsx - strippos, image.fsy, image.fsw, image.fsh);
                             if (alpha !== 0 || !so.disabled)
                                 drawslice(image.ouv, ctx, image.fsx - strippos, image.fsy, image.fsw, image.fsh, alpha);
                         } else {
                             ctx.fillRect(image.fsx - strippos, image.fsy, image.fsw, image.fsh);
                             drawslice(image.ouv, ctx, image.fsx - strippos, image.fsy, image.fsw, image.fsh, -100);
+                            if(icon === "loading")
+                                continue;
+                            const dzip=image.dzip;
+                            if(typeof dzip === "string") {
+                                if(dzip === "loading")
+                                    continue;
+                                image.dzip="loading";
+                                netunzip(()=>dpurlget(dzip).then(json=>json.url)).then(dzip=>{
+                                    image.dzip=dzip;
+                                    drawstrip();
+                                    const callback=image.callback;
+                                    if(callback){
+                                        delete image.callback;
+                                        callback();
+                                    }
+                                });
+                                continue;
+                            }
+                            
+                            image.icon="loading";
+                            
                             let w = image.width;
                             let h = image.height;
                             let t = image.tilesize;
@@ -354,19 +384,28 @@ and open the template in the editor.
                                 h = (h + 1) >> 1;
                                 l--;
                             }
-                            let i = document.createElement("img");
-                            i.onload = () => {
-                                image.icon = i;
-                                drawstrip();
-                            };
-                            i.crossOrigin = "anonymous";
-                            i.src = await dpurlget(image.base + l + "/0_0." + image.format).then(json => json.url);
+                            const img=document.createElement("img");
+                            if(!dzip){
+                                img.onload = () => {
+                                    image.icon = img;
+                                    drawstrip();
+                                };
+                                img.crossOrigin = "anonymous";
+                                dpurlget(image.base + l + "/0_0." + image.format).then(json => img.src=json.url);
+                            }else{
+                                dzip.get(dzip.entries.get(image.base + l + "/0_0." + image.format))
+                                        .then(data=>{
+                                            const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
+                                            img.onload=()=>{
+                                                URL.revokeObjectURL(url);
+                                                image.icon=img;
+                                                drawstrip();
+                                            };
+                                            img.src=url;
+                                        });
+                            }
                         }
                     }
-
-                stripdrawing = false;
-                if (stripredraw)
-                    drawstrip();
             }
             function stripscroll(event) {
                 event.preventDefault();
@@ -540,11 +579,16 @@ and open the template in the editor.
             let marker = false;
             let slice = false;
             async function drawimage() {
+                drawX("maincnv");
                 if (!ready)
                     return;
                 slice = false;
                 let idx = stripidx;
-                let {width, height, tilesize, overlap, format, base, maxlevel, fullcanvas/*,ouv*/} = images[idx];
+                let {width, height, tilesize, overlap, format, base, dzip, maxlevel, fullcanvas/*,ouv*/} = images[idx];
+                if(dzip === "loading") {
+                    images[idx].callback = drawimage;
+                    return;
+                }
                 let x = 0, y = 0;
                 let w = mainw, h = mainh;
                 if (w / h < width / height) {
@@ -573,7 +617,18 @@ and open the template in the editor.
                     //let xx=x,yy=y;
                     for (let x = 0; x < xtiles; x++)
                         for (let y = 0; y < ytiles; y++)
-                            loads.push(dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
+                            loads.push(dzip?dzip.get(dzip.entries.get(`${base + maxlevel}/${x}_${y}.${format}`))
+                                    .then(data => new Promise((resolve, reject) => {
+                                        const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
+                                        let tile = document.createElement("img");
+                                        tile.onload = () => {
+                                            URL.revokeObjectURL(url);
+                                            ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                            resolve();
+                                        };
+                                        tile.src = url;
+                                    }))
+                                :dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
                                     .then(json => new Promise((resolve, reject) => {
                                             let tile = document.createElement("img");
                                             tile.onerror = reject;
@@ -1441,8 +1496,8 @@ and open the template in the editor.
                     onmousedown="maindrag(event)"
                     onmousemove="mainmove(event)"
                     onkeydown="maindown(event)"
-                    onmouseover="event.target.focus()"
-                    onmouseout="event.target.blur();mainmove(event)"></canvas>
+                    onmouseover="/*event.target.focus()*/"
+                    onmouseout="/*event.target.blur();*/mainmove(event)"></canvas>
         </div>
         <div id="hsep" class="hsep"></div>
         <div id="navi">
