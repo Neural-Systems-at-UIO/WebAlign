@@ -84,6 +84,12 @@ $json["token"]=$token;
                 if(collection.length)document.getElementById("log").innerText="Ready.";
             }
             
+            function clear(){
+                collection=[];
+                oldisv=false;
+                tryshow();
+            }
+            
             function dzisection(dzi,filename){
                 return {
                     filename,
@@ -99,6 +105,7 @@ $json["token"]=$token;
             let bucket;
             const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
             async function trycollect(){
+                clear();
                 const current=ctime=Date.now();
                 const button=document.getElementById("create");
                 button.disabled=true;
@@ -107,9 +114,6 @@ $json["token"]=$token;
                 const btns=document.getElementById("dzipbuttons");
                 btns.hidden=true;
                 dzipbundles=new Map();
-
-                collection=[];
-                
                 try{
                     bucket=document.getElementById("collab").value.replaceAll(/[^-\w().!]/g, "");
                     const dzips = await dpjson(`${bucket}?prefix=${wfprefix}`);
@@ -145,9 +149,9 @@ $json["token"]=$token;
                 tryshow();
             }
             async function dzicollect(dzipbundle){
+                clear();
                 const current=ctime=Date.now();
                 const prg=document.getElementById("log");
-                collection=[];
                 const dzips=dzipbundles.get(dzipbundle);
                 for(let i=0;i<dzips.length;i++) {
                     if(current!==ctime)return;
@@ -167,9 +171,11 @@ $json["token"]=$token;
                 }
                 tryshow();
             }
+            // https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/imgsvc-be74b890-2c14-4404-b187-678ab8cacc9e/ext-d000018_mouse3_calb_s193.tif/ext-d000018_mouse3_calb_s193.dzi
+            // https://localizoom.apps.hbp.eu/filmstripzoom.html?atlas=ABA_Mouse_CCFv3_2017_25um&series=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000018_CalbindinDistr-NormalMouse_pub/Mouse3/mouse3_nonlinear_lz.json&pyramids=imgsvc-be74b890-2c14-4404-b187-678ab8cacc9e&tools&nl
+            let oldisv;
             async function import_link(event) {
-                collection=[];
-                tryshow();
+                clear();
                 const link=event.target.value;
                 if(!link.startsWith("https://localizoom.apps.hbp.eu/filmstripzoom.html?"))
                     return;
@@ -178,22 +184,27 @@ $json["token"]=$token;
                     acc.set(pair[0],pair.length===1?true:pair[1]);
                     return acc;
                 },new Map());
-                if(!params.get("pyramids").startsWith("buckets/")){
-                    alert("Old ISV is not supported yet.");
-                    return;
+                
+                if(params.get("pyramids").startsWith("buckets/")){
+                    bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
+                }else{
+                    bucket=false;
+                    document.getElementById("collab").value="---";
+                    oldisv=params.get("pyramids");
                 }
+                
                 const select=document.getElementById("atlas");
                 atlas.selectedIndex=-1;
                 for(let i=0;i<atlas.options.length;i++)
                     if(atlas.options[i].value===params.get("atlas"))
                         atlas.selectedIndex=i;
                 
-                bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
+//                bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
                 const series=await fetch(params.get("series")).then(response=>response.json());
                 collection=await Promise.all(series.slices.map(async slice=>{
                     const filename=slice.filename;
-                    const dzi=await fetch("https://data-proxy.ebrains.eu/api/v1/buckets/"+
-                            `${bucket}/${filename}/${filename.substring(0,filename.lastIndexOf("."))}.dzi`)
+                    const dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
+                            `${bucket?bucket:oldisv}/${filename}/${filename.substring(0,filename.lastIndexOf("."))}.dzi`)
                             .then(response=>response.text());
                     const section=dzisection(dzi,filename);
                     if(slice.hasOwnProperty("anchoring"))
@@ -212,10 +223,11 @@ $json["token"]=$token;
             async function create(){
                 document.getElementById("create").disabled=true;
                 const series={
-                    bucket,
                     atlas:document.getElementById("atlas").value,
                     sections:collection
                 };
+                if(bucket)series.bucket=bucket;
+                if(oldisv)series.oldisv=oldisv;
                 const upload=await fetch(
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${state["clb-collab-id"]}/${state.filename}`,{
                             method: "PUT",
@@ -226,7 +238,7 @@ $json["token"]=$token;
                         }
                     ).then(response=>response.json());
                 if (!upload.hasOwnProperty("url")) {
-                    document.write("Possible error happened:<br>" + JSON.stringify(upload));
+                    document.getElementById("log").innerHTML=("Possible error happened:<br>" + JSON.stringify(upload));
                     return;
                 }
                 await fetch(upload.url, {

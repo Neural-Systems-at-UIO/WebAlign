@@ -138,6 +138,7 @@ and open the template in the editor.
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketfile}?redirect=false`,
                         {headers: {authorization: `Bearer ${token}`}}).then(response => response.json());
             }
+            const oldisv="https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/";
 
             let atlas = {xdim: 1, ydim: 1, zdim: 1};
             let series;
@@ -179,7 +180,7 @@ and open the template in the editor.
 
 
                         image = {
-                            ...section, base: series.bucket + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
+                            ...section, base: (series.bucket?series.bucket:series.oldisv) + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
                         };
                     } else {
                         // "filename":"10000pxtest/2022-268_InjectionSite_5X_Overview_s026.dzip"
@@ -391,7 +392,10 @@ and open the template in the editor.
                                     drawstrip();
                                 };
                                 img.crossOrigin = "anonymous";
-                                dpurlget(image.base + l + "/0_0." + image.format).then(json => img.src=json.url);
+                                if(series.bucket)
+                                    dpurlget(image.base + l + "/0_0." + image.format).then(json => img.src=json.url);
+                                else
+                                    img.src=oldisv+image.base+l+"/0_0."+image.format;
                             }else{
                                 dzip.get(dzip.entries.get(image.base + l + "/0_0." + image.format))
                                         .then(data=>{
@@ -628,7 +632,7 @@ and open the template in the editor.
                                         };
                                         tile.src = url;
                                     }))
-                                :dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
+                                :series.bucket?dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
                                     .then(json => new Promise((resolve, reject) => {
                                             let tile = document.createElement("img");
                                             tile.onerror = reject;
@@ -640,7 +644,17 @@ and open the template in the editor.
                                             };
                                             tile.crossOrigin = "anonymous";
                                             tile.src = json.url;
-                                        })));
+                                        }))
+                                :new Promise((resolve,reject)=>{
+                                    let tile = document.createElement("img");
+                                    tile.onerror = reject;
+                                    tile.onload = () => {
+                                        ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                        resolve();
+                                    };
+                                    tile.crossOrigin = "anonymous";
+                                    tile.src = oldisv+base+maxlevel+`/${x}_${y}.${format}`;
+                                }));
 //                        loads.push(new Promise((resolve,reject)=>{
 //                            let tile=document.createElement("img");
 //                            tile.onerror=reject;
