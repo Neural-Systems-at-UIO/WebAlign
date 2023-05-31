@@ -65,6 +65,7 @@ $json["token"]=$token;
                 document.getElementById("newseries").hidden=false;
                 document.getElementById("filename").innerText="New series "+state.filename;
                 document.getElementById("collab").value=state["clb-collab-id"];
+                document.getElementById("atlas").selectedIndex=-1;
                 trycollect();
             }
             function cancel(){
@@ -78,8 +79,20 @@ $json["token"]=$token;
                 document.getElementById("filebody").innerHTML=
                         collection.map(item=>`<tr><td>${item.filename.split("/").slice(-1)[0]}</td><td>${item.format}</td>
                             <td>${item.width}</td><td>${item.height}</td><td>${item.tilesize}</td><td>${item.overlap}</td></tr>`).join("");
-                document.querySelector("button").disabled=document.getElementById("filetable").hidden=collection.length===0;
+                document.getElementById("filetable").hidden=collection.length===0;
+                document.getElementById("create").disabled=collection.length===0 || document.getElementById("atlas").selectedIndex===-1;
                 if(collection.length)document.getElementById("log").innerText="Ready.";
+            }
+            
+            function dzisection(dzi,filename){
+                return {
+                    filename,
+                    width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
+                    height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
+                    tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
+                    overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
+                    format:dzi.match(/Format="([^"]+)"/m)[1]
+                };
             }
             
             let dzipbundles;
@@ -87,7 +100,7 @@ $json["token"]=$token;
             const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
             async function trycollect(){
                 const current=ctime=Date.now();
-                const button=document.querySelector("button");
+                const button=document.getElementById("create");
                 button.disabled=true;
                 const prg=document.getElementById("log");
                 document.getElementById("filetable").hidden=true;
@@ -113,14 +126,7 @@ $json["token"]=$token;
                                 const dzi=await fetch(urljson.url).then(response=>response.text());
                                 if(current!==ctime)
                                     return;
-                                collection.push({
-                                    filename:subdir.substring(0,subdir.length-1),
-                                    width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
-                                    height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
-                                    tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
-                                    overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
-                                    format:dzi.match(/Format="([^"]+)"/m)[1]
-                                });
+                                collection.push(dzisection(dzi,subdir.substring(0,subdir.length-1)));
                             }
                         }
                     } else {
@@ -154,22 +160,57 @@ $json["token"]=$token;
                             const data=await zipdir.get(entry);
                             if(current!==ctime)return;
                             const dzi=new TextDecoder().decode(data);
-                            collection.push({
-                                filename:dzipbundle+"/"+dzip,
-                                    width:parseInt(dzi.match(/Width="(\d+)"/m)[1]),
-                                    height:parseInt(dzi.match(/Height="(\d+)"/m)[1]),
-                                    tilesize:parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
-                                    overlap:parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
-                                    format:dzi.match(/Format="([^"]+)"/m)[1]
-                            });
+                            collection.push(dzisection(dzi,dzipbundle+"/"+dzip));
                             break;
                         }
                     }
                 }
                 tryshow();
             }
+            async function import_link(event) {
+                collection=[];
+                tryshow();
+                const link=event.target.value;
+                if(!link.startsWith("https://localizoom.apps.hbp.eu/filmstripzoom.html?"))
+                    return;
+                const params=link.split("?")[1].split("&").reduce((acc,item)=>{
+                    const pair=item.split("=");
+                    acc.set(pair[0],pair.length===1?true:pair[1]);
+                    return acc;
+                },new Map());
+                if(!params.get("pyramids").startsWith("buckets/")){
+                    alert("Old ISV is not supported yet.");
+                    return;
+                }
+                const select=document.getElementById("atlas");
+                atlas.selectedIndex=-1;
+                for(let i=0;i<atlas.options.length;i++)
+                    if(atlas.options[i].value===params.get("atlas"))
+                        atlas.selectedIndex=i;
+                
+                bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
+                const series=await fetch(params.get("series")).then(response=>response.json());
+                collection=await Promise.all(series.slices.map(async slice=>{
+                    const filename=slice.filename;
+                    const dzi=await fetch("https://data-proxy.ebrains.eu/api/v1/buckets/"+
+                            `${bucket}/${filename}/${filename.substring(0,filename.lastIndexOf("."))}.dzi`)
+                            .then(response=>response.text());
+                    const section=dzisection(dzi,filename);
+                    if(slice.hasOwnProperty("anchoring"))
+                        section.ouv=slice.anchoring;
+                    if(slice.hasOwnProperty("markers"))
+                        section.markers=slice.markers.map(marker=>({
+                            x:marker[0]*section.width/slice.width,
+                            y:marker[1]*section.height/slice.height,
+                            nx:marker[2]*section.width/slice.width,
+                            ny:marker[3]*section.height/slice.height
+                        }));
+                    return section;
+                }));
+                tryshow();
+            }
             async function create(){
-                document.querySelector("button").disabled=true;
+                document.getElementById("create").disabled=true;
                 const series={
                     bucket,
                     atlas:document.getElementById("atlas").value,
@@ -202,14 +243,15 @@ $json["token"]=$token;
     <body onload="startup()">
         <div id="newseries" hidden>
             <div id="filename"></div>
+            <input oninput="import_link(event)" placeholder="Import LocaliZoom link"><br><br>
             Enter name of image-chunk collab: <input id="collab" oninput="trycollect()"><br>
             Target atlas:
-            <select id="atlas">
+            <select id="atlas" onchange="tryshow()">
                 <option value="WHS_SD_Rat_v4_39um">WHS SD Rat v4 39um</option>
                 <option value="WHS_SD_Rat_v3_39um">WHS SD Rat v3 39um</option>
                 <option value="ABA_Mouse_CCFv3_2017_25um">ABA Mouse CCFv3 2017 25um</option>
             </select><br>
-            <button onclick="create()" disabled>Create</button><button onclick="cancel()">Cancel</button>
+            <button id="create" onclick="create()" disabled>Create</button><button onclick="cancel()">Cancel</button>
             <pre id="log"></pre>
             <div id="dzipbuttons"></div>
             <table id="filetable">
