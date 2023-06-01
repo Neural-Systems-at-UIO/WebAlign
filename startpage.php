@@ -30,6 +30,12 @@ $json["token"]=$token;
         <script src="dppick.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/inflater.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
+        <style>
+            .error{
+                color: red;
+                font-weight: bold;
+            }
+        </style>
         <script>
             const state=<?php echo json_encode($json);?>;
             async function dpjson(params) {
@@ -76,12 +82,29 @@ $json["token"]=$token;
             let collection;
             let ctime;
             function tryshow(){
+//                document.getElementById("filebody").innerHTML=
+//                        collection.map(item=>`<tr><td>${item.filename.split("/").slice(-1)[0]}</td><td>${item.format}</td>
+//                            <td>${item.width}</td><td>${item.height}</td><td>${item.tilesize}</td><td>${item.overlap}</td></tr>`).join("");
+                const copy=collection;
+                collection=[];
+                let error=false;
                 document.getElementById("filebody").innerHTML=
-                        collection.map(item=>`<tr><td>${item.filename.split("/").slice(-1)[0]}</td><td>${item.format}</td>
-                            <td>${item.width}</td><td>${item.height}</td><td>${item.tilesize}</td><td>${item.overlap}</td></tr>`).join("");
-                document.getElementById("filetable").hidden=collection.length===0;
+                        copy.map(item=>{
+                            const filename=item.filename.split("/").slice(-1)[0];
+                            const fail=!filename.match(/_s\d+/);
+                            if(fail)
+                                error=true;
+                            else
+                                collection.push(item);
+                            return `<tr><td ${fail?"class='error'":""}>${filename}</td><td>${item.format}</td>`+
+                            `<td>${item.width}</td><td>${item.height}</td><td>${item.tilesize}</td><td>${item.overlap}</td></tr>`;
+                        }).join("");
+                if(error)
+                    document.getElementById("log").innerText="Sections marked in red do not follow the expected numbering convention and will not be part of the series.";
+                else if(collection.length)
+                    document.getElementById("log").innerText="Ready.";
+                document.getElementById("filetable").hidden=copy.length===0;
                 document.getElementById("create").disabled=collection.length===0 || document.getElementById("atlas").selectedIndex===-1;
-                if(collection.length)document.getElementById("log").innerText="Ready.";
             }
             
             function clear(){
