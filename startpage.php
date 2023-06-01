@@ -116,9 +116,9 @@ $json["token"]=$token;
                 dzipbundles=new Map();
                 try{
                     bucket=document.getElementById("collab").value.replaceAll(/[^-\w().!]/g, "");
-                    const dzips = await dpjson(`${bucket}?prefix=${wfprefix}`);
+                    const dzips = await dpjson(`${bucket}?prefix=${wfprefix}&limit=10000`);
                     if(dzips.objects.length<2){
-                        const result = await dpjson(`${bucket}?delimiter=/`);
+                        const result = await dpjson(`${bucket}?delimiter=/&limit=10000`);
                         if(result.hasOwnProperty("objects")){
                             const images=result.objects.filter(item=>item.hasOwnProperty("subdir")&&item.subdir.includes("."));
                             for(const image of images){
