@@ -347,6 +347,11 @@ and open the template in the editor.
                             ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
                             ctx.fillStyle = "black";
                         }
+                        if (image.anchored) {
+                            ctx.fillStyle = "green";
+                            ctx.fillRect(image.fsx - strippos - 5, 0, image.fsw + 10, 128);
+                            ctx.fillStyle = "black";
+                        }
                         const icon=image.icon;
                         if (typeof icon === "object") {
                             ctx.drawImage(image.icon, image.fsx - strippos, image.fsy, image.fsw, image.fsh);
@@ -511,29 +516,40 @@ and open the template in the editor.
             }
 
             let ouv;
+            let active_image;
+            let undo_stack;
+            let undo_pos;
             function activateslice(idx) {
                 series.current = idx;
                 stripidx = idx;
                 marker = false;
-                let image = images[idx];
-                document.getElementById("image").innerText = image.filename + "\n" + image.width + " x " + image.height;
-                ouv = image.ouv.slice();
+                active_image = images[idx];
+                document.getElementById("image").innerText = active_image.filename + "\n" + active_image.width + " x " + active_image.height;
+                ouv = active_image.ouv.slice();
                 imagenavi();
 //                drawimage();
                 drawstrip();
 //                drawnavi();
 //                drawcut();
+                init_undo();
             }
-            function store() {
-                if (!ready)
-                    return;
-                let image = images[stripidx];
-                image.ouv = ouv.slice();
-                image.anchored = true;
+            function init_undo() {
+                undo_stack = [images[stripidx].anchored ? ouv.slice() : false];
+                undo_pos = 0;
+                document.getElementById("undo").disabled = document.getElementById("redo").disabled = true;
+            }
+            function store_undo() {
+                active_image.anchored = true;
+                active_image.ouv = ouv.slice();
+                undo_pos++;
+                undo_stack.splice(undo_pos);
+                undo_stack.push(ouv.slice());
+                document.getElementById("undo").disabled = false;
+                document.getElementById("redo").disabled = true;
 
                 delete series.sections[stripidx].markers;
                 let idx = stripidx - 1;
-                while (idx > 0 && !images[idx].anchored) {
+                while (idx >= 0 && !images[idx].anchored) {
                     delete series.sections[idx].markers;
                     idx--;
                 }
@@ -546,13 +562,31 @@ and open the template in the editor.
                 propagate();
                 drawstrip();
             }
-            function restore() {
-                if (!ready)
-                    return;
-                ouv = images[stripidx].ouv.slice();
+            function apply_xdo() {
+                document.getElementById("undo").disabled = undo_pos === 0;
+                document.getElementById("redo").disabled = undo_pos === undo_stack.length - 1;
+                const item = undo_stack[undo_pos];
+                if(item) {
+                    active_image.anchored = true;
+                    ouv = item.slice();
+                    active_image.ouv = item.slice();
+                } else {
+                    active_image.anchored = false;
+                }
+                propagate();
+                if(!item)
+                    ouv = active_image.ouv.slice();
+
                 imagenavi();
-//                drawimage();
-//                drawnavi();
+                drawstrip();
+            }
+            function undo() {
+                undo_pos--;
+                apply_xdo();
+            }
+            function redo() {
+                undo_pos++;
+                apply_xdo();
             }
             function ouv_clear() {
                 if (!ready)
@@ -882,10 +916,13 @@ and open the template in the editor.
 
             }
 
+            let drag_ouv;
             let drag = false;
             function mup(event) {
                 if (drag) {
                     drag = false;
+                    if(drag_ouv.some((e,i) => e !== ouv[i]))
+                        store_undo();
                     if (marker) {
                         marker.type = "cross";
                         drawimage();
@@ -906,6 +943,7 @@ and open the template in the editor.
 //                ctx.arc(npoints[4][1],npoints[4][0]+zfact+10,3,0,Math.PI*2);
 //                ctx.arc(npoints[4][0]+navw-xfact,npoints[4][2]+zfact+10+xfact+10,3,0,Math.PI*2);
                 drag = {x: event.offsetX, y: event.offsetY};
+                drag_ouv = ouv.slice();
                 if (range(event.offsetX, midpoint[1], 5) && range(event.offsetY, midpoint[2], 5)) {
                     drag.type = "sdrag";
                 } else if (range(event.offsetX, midpoint[1], 5) && range(event.offsetY, xfact - midpoint[0] + zfact + 10, 5)) {
@@ -928,6 +966,7 @@ and open the template in the editor.
             }
             function maindrag(event) {
                 drag = {type: "mdrag", x: event.offsetX, y: event.offsetY};
+                drag_ouv = ouv.slice();
             }
             function maindown(event) {
                 event.preventDefault();
@@ -1483,7 +1522,8 @@ and open the template in the editor.
                 <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">
             </div>
             <hr>
-            <button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>
+            <!--<button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>-->
+            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button>
             <hr>
             <select id="mode" oninput="angles()">
                 <option>Coronal</option>
