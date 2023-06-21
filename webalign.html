@@ -538,12 +538,12 @@ and open the template in the editor.
                 undo_pos = 0;
                 document.getElementById("undo").disabled = document.getElementById("redo").disabled = true;
             }
-            function store_undo() {
-                active_image.anchored = true;
+            function store_undo(clearing) {
+                active_image.anchored = !clearing;
                 active_image.ouv = ouv.slice();
                 undo_pos++;
                 undo_stack.splice(undo_pos);
-                undo_stack.push(ouv.slice());
+                undo_stack.push(clearing?false:ouv.slice());
                 document.getElementById("undo").disabled = false;
                 document.getElementById("redo").disabled = true;
 
@@ -591,26 +591,28 @@ and open the template in the editor.
             function ouv_clear() {
                 if (!ready)
                     return;
-                switch (document.getElementById("mode").selectedIndex) {
-                    case 0:
-                        ouv = [0, atlas.ydim / 2, atlas.zdim - 1,
-                            atlas.xdim, 0, 0,
-                            0, 0, -atlas.zdim];
-                        break;
-                    case 1:
-                        ouv = [atlas.xdim / 2, atlas.ydim - 1, atlas.zdim - 1,
-                            0, -atlas.ydim, 0,
-                            0, 0, -atlas.zdim];
-                        break;
-                    case 2:
-                        ouv = [0, atlas.ydim - 1, atlas.zdim / 2,
-                            0, -atlas.ydim, 0,
-                            atlas.xdim, 0, 0];
-                        break;
-                }
-                imagenavi();
-//                drawimage();
-//                drawnavi();
+                store_undo(true);
+
+//                switch (document.getElementById("mode").selectedIndex) {
+//                    case 0:
+//                        ouv = [0, atlas.ydim / 2, atlas.zdim - 1,
+//                            atlas.xdim, 0, 0,
+//                            0, 0, -atlas.zdim];
+//                        break;
+//                    case 1:
+//                        ouv = [atlas.xdim / 2, atlas.ydim - 1, atlas.zdim - 1,
+//                            0, -atlas.ydim, 0,
+//                            0, 0, -atlas.zdim];
+//                        break;
+//                    case 2:
+//                        ouv = [0, atlas.ydim - 1, atlas.zdim / 2,
+//                            0, -atlas.ydim, 0,
+//                            atlas.xdim, 0, 0];
+//                        break;
+//                }
+//                imagenavi();
+////                drawimage();
+////                drawnavi();
             }
 
             let mainimg = false;
@@ -915,6 +917,8 @@ and open the template in the editor.
             function drawcut() {
 
             }
+            
+            let storeclick=false;
 
             let drag_ouv;
             let drag = false;
@@ -939,6 +943,10 @@ and open the template in the editor.
                 return v >= c - r && v <= c + r;
             }
             function ndrag(event) {
+                if(storeclick){
+                    storeclick=false;
+                    store_undo();
+                }
 //                ctx.arc(npoints[4][1],npoints[4][2],3,0,Math.PI*2);
 //                ctx.arc(npoints[4][1],npoints[4][0]+zfact+10,3,0,Math.PI*2);
 //                ctx.arc(npoints[4][0]+navw-xfact,npoints[4][2]+zfact+10+xfact+10,3,0,Math.PI*2);
@@ -965,6 +973,10 @@ and open the template in the editor.
                 drawpop();
             }
             function maindrag(event) {
+                if(storeclick){
+                    storeclick=false;
+                    store_undo();
+                }
                 drag = {type: "mdrag", x: event.offsetX, y: event.offsetY};
                 drag_ouv = ouv.slice();
             }
@@ -1449,11 +1461,14 @@ and open the template in the editor.
                 }
                 drawstrip();
             }
+            
             function clickstep(coord, dir) {
+                storeclick=true;
                 ouv[coord] += document.getElementById("panstep").valueAsNumber * dir;
                 imagenavi();
             }
             function clickrot(c1, c2, dir) {
+                storeclick=true;
                 const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
                 const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
@@ -1463,6 +1478,7 @@ and open the template in the editor.
                 imagenavi();
             }
             function mainstep(x, y) {
+                storeclick=true;
                 let step = document.getElementById("panstep").valueAsNumber;
                 decomp(ouv);
                 for (let i = 0; i < 3; i++) {
@@ -1473,6 +1489,7 @@ and open the template in the editor.
                 imagenavi();
             }
             function mainrot(dir) {
+                storeclick=true;
                 const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
                 const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
