@@ -60,7 +60,7 @@ If you would like to work with an EBRAINS dataset, open the LocaliZoom link from
 These series already have been registered to a reference atlas, so this gives you a starting point. The linear registrations obtained with WebAlign can be refined using WebWarp.
   
 .. image:: images/Timm_dataset_card.png
-  :width: 3.30139in
+  :width: 5.30139in
   :height: 3.54662in
 
 
