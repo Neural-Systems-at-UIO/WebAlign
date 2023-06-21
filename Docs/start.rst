@@ -55,7 +55,14 @@ Your file is saved in the Bucket as a .waln file
 
 **Work with EBRAINS datasets**
 ---------------------------------
-If you would like to work with an EBRAINS dataset, fetch the LocaliZoom link from the KG dataset card ( https://search.kg.ebrains.eu) and paste it in the "Import LocaliZoom link" tab.
+If you would like to work with an EBRAINS dataset, open the LocaliZoom link from the KG dataset card ( https://search.kg.ebrains.eu) and paste it in the "Import LocaliZoom link" tab.
 
 These series already have been registered to a reference atlas, so this gives you a starting point. The linear registrations obtained with WebAlign can be refined using WebWarp.
   
+.. image:: images/Timm_dataset_card.png
+  :width: 3.30139in
+  :height: 3.54662in
+
+.. image:: images/Fetch_LZ_dataset.png
+  :width: 3.30139in
+  :height: 3.54662in
