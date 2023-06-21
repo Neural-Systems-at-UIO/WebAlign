@@ -1,6 +1,6 @@
 **Opening a sample dataset**
 -------------------------------
-A Demo dataset is present in the QUINT-Demo collab: https://wiki.ebrains.eu/bin/view/Collabs/quint-demo/
+A Demo dataset is present in the QUINT-Demo collab: https://wiki.ebrains.eu/bin/view/Collabs/image-registration-and-analysis-demo
 
 Load the file by clicking on the file: "demo_mouse_data_start.waln"
 
