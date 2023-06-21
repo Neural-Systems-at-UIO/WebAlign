@@ -36,16 +36,13 @@ Now go to the WebAlign app in order to start the registration to atlas.
 **Opening of your own dataset in WebAlign**
 -----------------------------------
 
-After you have uploaded your images to the collab bucket and ingested your images with the Image service app, you will find generated DZI chunks in the bucket.
-These DZI files are used by WebAlign.
-
 1. Start a new registration by pressing "create new series", the UI will ask you for the name of your series. E.g. my-registration
 
 2. The name of the present bucket is prefilled but you if your ingested data are located in another collab, you can type the name of that collab
 
 3. Choose the target atlas (WHSv4 for Rat and CCFv3_2017 for Mouse).
 
-4. WebAlign will search for DZI files and list those found.
+4. WebAlign will search for DZIP files and list those found.
 
 5. Press "create". The main window will now display WebAlign. This step can take some time.
 Your file is saved in the Bucket as a .waln file
