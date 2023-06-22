@@ -7,6 +7,7 @@ The main window shows the selected image with the atlas overlay.
    :width: 7.3in
    :height: 4.04916in 
 
+Dataset DOI: 10.25493/G6CQ-D4D
 
 .. note::
  If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel below)
