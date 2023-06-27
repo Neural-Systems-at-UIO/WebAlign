@@ -49,6 +49,10 @@ $json["token"]=$token;
                 return response.json();
             }
             async function startup(){
+                if(state.hasOwnProperty("filename")){
+                    location.href="webalign.html?"+encodeURIComponent(JSON.stringify(state));
+                    return;
+                }
                 const choice=await dppick({
                     bucket:state["clb-collab-id"],
                     token:state.token,
