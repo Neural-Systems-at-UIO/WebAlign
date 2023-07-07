@@ -230,10 +230,19 @@ $json["token"]=$token;
                 const series=await fetch(params.get("series")).then(response=>response.json());
                 collection=await Promise.all(series.slices.map(async slice=>{
                     const filename=slice.filename;
-                    const dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
-                            `${bucket?bucket:oldisv}/${filename}/${filename.substring(0,filename.lastIndexOf("."))}.dzi`)
+                    const name=filename.substring(0,filename.lastIndexOf("."))
+                    let dzi,section;
+                    try {
+                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
+                            `${bucket?bucket:oldisv}/${filename}/${name}.dzi`)
                             .then(response=>response.text());
-                    const section=dzisection(dzi,filename);
+                        section=dzisection(dzi,filename);
+                    } catch(ex) {
+                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
+                            `${bucket?bucket:oldisv}/${name}.tif/${name}.dzi`)
+                            .then(response=>response.text());
+                        section=dzisection(dzi,name+".tif");
+                    }
                     if(slice.hasOwnProperty("anchoring"))
                         section.ouv=slice.anchoring;
                     if(slice.hasOwnProperty("markers"))
