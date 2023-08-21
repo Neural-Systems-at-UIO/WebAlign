@@ -152,7 +152,7 @@ and open the template in the editor.
                 window.addEventListener("resize", resize);
                 resize();
                 const url = await dpurlget(bucket + "/" + filename).then(json => json.url);
-                series = await fetch(url + "?" + Date.now()).then(response => response.json());
+                series = await fetch(url.includes("?") ? url : url + "?" + Date.now()).then(response => response.json());
                 if (series.hasOwnProperty("mode"))
                     document.getElementById("mode").selectedIndex = series.mode;
                 console.log(Date.now() - start, "Got series");
