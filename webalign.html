@@ -148,6 +148,8 @@ and open the template in the editor.
             let gray;
             async function startup() {
                 let start = Date.now();
+                if(args.embedded)
+                    document.getElementById("saveas").style.display="none";
                 popup("Loading data");
                 window.addEventListener("resize", resize);
                 resize();
@@ -1200,7 +1202,7 @@ and open the template in the editor.
 
             }
             async function save() {
-                if (filename.endsWith(".waln"))
+                if (args.embedded || filename.endsWith(".waln"))
                     dosave();
                 else
                     saveas();
@@ -1514,7 +1516,7 @@ and open the template in the editor.
             <span id="atlas"></span>
             <hr>
             Bucket:
-            <button onclick="save()">Save</button><button onclick="saveas()">Save as...</button><button onclick="exprt()">Export overlays</button>
+            <button onclick="save()">Save</button><button onclick="saveas()" id="saveas">Save as...</button><button onclick="exprt()">Export overlays</button>
             <div class="ctrlrow">
                 <select id="modality" oninput="drawimage();drawstrip();drawnavi();" disabled>
                     <option>Segmentation</option>

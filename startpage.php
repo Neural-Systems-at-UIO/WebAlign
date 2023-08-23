@@ -50,6 +50,7 @@ $json["token"]=$token;
             }
             async function startup(){
                 if(state.hasOwnProperty("filename")){
+                    state.embedded=true;
                     location.href="webalign.html?"+encodeURIComponent(JSON.stringify(state));
                     return;
                 }
