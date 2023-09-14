@@ -988,7 +988,7 @@ and open the template in the editor.
                     marker = {type: "cross",
                         x: (mainx - mainimg.x) / mainimg.w,
                         y: (mainy - mainimg.y) / mainimg.h};
-                if (event.code === "Escape")
+                if (event.code === "Escape" || event.code === "Delete" || event.code === "Backspace")
                     marker = false;
                 if (event.code === "Space")
                     marker.type = "cross";
