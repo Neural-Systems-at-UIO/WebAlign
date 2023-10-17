@@ -549,17 +549,17 @@ and open the template in the editor.
                 document.getElementById("undo").disabled = false;
                 document.getElementById("redo").disabled = true;
 
-                delete series.sections[stripidx].markers;
-                let idx = stripidx - 1;
-                while (idx >= 0 && !images[idx].anchored) {
-                    delete series.sections[idx].markers;
-                    idx--;
-                }
-                idx = stripidx + 1;
-                while (idx < images.length && !images[idx].anchored) {
-                    delete series.sections[idx].markers;
-                    idx++;
-                }
+//                delete series.sections[stripidx].markers;
+//                let idx = stripidx - 1;
+//                while (idx >= 0 && !images[idx].anchored) {
+//                    delete series.sections[idx].markers;
+//                    idx--;
+//                }
+//                idx = stripidx + 1;
+//                while (idx < images.length && !images[idx].anchored) {
+//                    delete series.sections[idx].markers;
+//                    idx++;
+//                }
 
                 propagate();
                 drawstrip();
