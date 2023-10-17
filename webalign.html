@@ -549,6 +549,7 @@ and open the template in the editor.
                 document.getElementById("undo").disabled = false;
                 document.getElementById("redo").disabled = true;
 
+// Clearing nonlinear markers from altered sections - feature deactivated on user request
 //                delete series.sections[stripidx].markers;
 //                let idx = stripidx - 1;
 //                while (idx >= 0 && !images[idx].anchored) {
@@ -626,7 +627,7 @@ and open the template in the editor.
                     return;
                 slice = false;
                 let idx = stripidx;
-                let {width, height, tilesize, overlap, format, base, dzip, maxlevel, fullcanvas/*,ouv*/} = images[idx];
+                let {width, height, tilesize, overlap, format, base, dzip, maxlevel: level, fullcanvas/*,ouv*/} = images[idx];
                 if(dzip === "loading") {
                     images[idx].callback = drawimage;
                     return;
@@ -641,12 +642,12 @@ and open the template in the editor.
                     x = (mainw - w) / 2;
                 }
                 mainimg = {x, y, w, h};
-                while (width > w * 2 && height > h * 2) {
-                    maxlevel--;
+                while (level > 0 && width > w * 2 && height > h * 2) {
+                    level--;
                     width = (width + 1) >> 1;
                     height = (height + 1) >> 1;
                 }
-                if (!fullcanvas || fullcanvas.width < w || fullcanvas.height < h) {
+                if (!fullcanvas || (fullcanvas.width < w && fullcanvas.width < width) || (fullcanvas.height < h && fullcanvas.height < height)) {
                     fullcanvas = document.createElement("canvas");
                     let ctx = fullcanvas.getContext("2d");
                     fullcanvas.width = width;
@@ -659,7 +660,7 @@ and open the template in the editor.
                     //let xx=x,yy=y;
                     for (let x = 0; x < xtiles; x++)
                         for (let y = 0; y < ytiles; y++)
-                            loads.push(dzip?dzip.get(dzip.entries.get(`${base + maxlevel}/${x}_${y}.${format}`))
+                            loads.push(dzip?dzip.get(dzip.entries.get(`${base}${level}/${x}_${y}.${format}`))
                                     .then(data => new Promise((resolve, reject) => {
                                         const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
                                         let tile = document.createElement("img");
@@ -670,7 +671,7 @@ and open the template in the editor.
                                         };
                                         tile.src = url;
                                     }))
-                                :series.bucket?dpurlget(`${base + maxlevel}/${x}_${y}.${format}`)
+                                :series.bucket?dpurlget(`${base}${level}/${x}_${y}.${format}`)
                                     .then(json => new Promise((resolve, reject) => {
                                             let tile = document.createElement("img");
                                             tile.onerror = reject;
@@ -691,7 +692,7 @@ and open the template in the editor.
                                         resolve();
                                     };
                                     tile.crossOrigin = "anonymous";
-                                    tile.src = oldisv+base+maxlevel+`/${x}_${y}.${format}`;
+                                    tile.src = `${oldisv}${base}${level}/${x}_${y}.${format}`;
                                 }));
 //                        loads.push(new Promise((resolve,reject)=>{
 //                            let tile=document.createElement("img");
