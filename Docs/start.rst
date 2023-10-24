@@ -1,5 +1,9 @@
 **Opening a sample dataset**
 -------------------------------
+When working in the workbench, please see intructions here: https://quint-webtools.readthedocs.io/en/latest/WebAlign.html
+
+The following description concerns the use of WebAlign in the collaboratory.
+
 A Demo dataset is present in a Demo collab: https://wiki.ebrains.eu/bin/view/Collabs/image-registration-and-analysis-demo
 
 Load the file by clicking on the file: "demo_mouse_data_start.waln"
