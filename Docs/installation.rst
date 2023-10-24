@@ -1,5 +1,10 @@
 **Setting up the work environment**
 -----------------------------
+
+- If you are interested in performing a complete online QUINT analysis, you can access WebAlign in the Rodent brain workbench https://rodent-brain-workbench.apps.hbp.eu/ 
+
+- If you want to access the online registration tool WebAlign separately, you can create a private collab in the EBRAINS collaboratory.
+
 -Register for an EBRAINS account, login, and set up a private collab.
 
 -Initialise the Bucket by clicking on Bucket in the navigation panel -> Create Bucket.
