@@ -1,8 +1,7 @@
 **Opening a sample dataset**
 -------------------------------
 
-.. tip:: 
-When working in the workbench, please see intructions here: https://quint-webtools.readthedocs.io/en/latest/WebAlign.html
+.. tip::   When working in the workbench, please see intructions here: https://quint-webtools.readthedocs.io/en/latest/WebAlign.html
 
 The following description concerns the use of WebAlign in the collaboratory.
 
