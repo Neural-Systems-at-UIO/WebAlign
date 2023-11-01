@@ -128,6 +128,8 @@ and open the template in the editor.
         <script src="dppick.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/inflater.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
+        <script src="cache.js"></script>
+        <script src="zoomer.js"></script>
         <script>
             let args = JSON.parse(decodeURIComponent(location.search.substring(1)));
             const bucket = args["clb-collab-id"];
@@ -528,12 +530,147 @@ and open the template in the editor.
                 active_image = images[idx];
                 document.getElementById("image").innerText = active_image.filename + "\n" + active_image.width + " x " + active_image.height;
                 ouv = active_image.ouv.slice();
+                
+                init_zoomer();
+                
                 imagenavi();
 //                drawimage();
                 drawstrip();
 //                drawnavi();
 //                drawcut();
                 init_undo();
+            }
+            
+            let zoomer;
+            function init_zoomer() {
+                if(zoomer)
+                    zoomer.stop();
+                zoomer=false;
+
+                const {width, height, tilesize, overlap, format, base, dzip, maxlevel, fullcanvas/*,ouv*/} = active_image;
+                if(typeof dzip === "string") {
+                    active_image.callback = init_zoomer;
+                    return;
+                }
+                const DZIcfg={
+                    Width:width,
+                    Height:height,
+                    TileSize:tilesize,
+                    MaxLevel:maxlevel
+                };
+                DZIcfg.Overlay=(ctx, canvaswidth, canvasheight, cutx, cuty, cutw, cuth)=>{
+                    let x = 0, y = 0;
+                    let w = canvaswidth, h = canvasheight;
+                    if (w / h < width / height) {
+                        h = Math.floor(w * height / width);
+                        y = (canvasheight - h) / 2;
+                    } else {
+                        w = Math.floor(h * width / height);
+                        x = (canvaswidth - w) / 2;
+                    }
+                    mainimg = {x, y, w, h};
+
+                    let alpha = document.getElementById("mainalpha").valueAsNumber;
+                    if (alpha > 0) { // todo: rate limit
+                        let mo = document.getElementById("mainoutline");
+                        mo.disabled = alpha < 100;
+                        if (mo.disabled)
+                            alpha = -alpha;
+                        else
+                            alpha = parseInt(mo.value.substring(1), 16);
+                        slice = {...drawslice(ouv, ctx, x, y, w, h, alpha), x, y, w, h};
+                        drawpop();
+                        if (marker) {
+                            ctx.strokeStyle = "black";
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            switch (marker.type) {
+                                case "cross":
+                                    ctx.moveTo(x + w * marker.x - 10, y + h * marker.y);
+                                    ctx.lineTo(x + w * marker.x + 10, y + h * marker.y);
+                                    ctx.moveTo(x + w * marker.x, y + h * marker.y - 10);
+                                    ctx.lineTo(x + w * marker.x, y + h * marker.y + 10);
+                                    break;
+                                case "vscale":
+                                    ctx.moveTo(0, y + h * marker.y);
+                                    ctx.lineTo(mainw, y + h * marker.y);
+                                    //                            ctx.moveTo(0,mainy);
+                                    //                            ctx.lineTo(mainw,mainy);
+                                    break;
+                                case "hscale":
+                                    ctx.moveTo(x + w * marker.x, 0);
+                                    ctx.lineTo(x + w * marker.x, mainh);
+    //                                ctx.moveTo(mainx,0);
+    //                                ctx.lineTo(mainx,mainh);
+                                    break;
+                                case "rotate":
+                                    ctx.moveTo(x + w * marker.x - 5, y + h * marker.y);
+                                    ctx.lineTo(x + w * marker.x + 5, y + h * marker.y);
+                                    ctx.moveTo(x + w * marker.x, y + h * marker.y - 5);
+                                    ctx.lineTo(x + w * marker.x, y + h * marker.y + 5);
+                                    ctx.stroke();
+                                    ctx.beginPath();
+                                    ctx.arc(x + w * marker.x, y + h * marker.y, 10, 3 * Math.PI / 4, Math.PI / 4);
+                                    break;
+                            }
+                            ctx.stroke();
+                        }
+                    }
+                };
+                // TODO: consolidate copy-paste
+                if(dzip){
+                    DZIcfg.Load=async (level,x,y) => {
+                        const data=await dzip.get(dzip.entries.get(`${base}${maxlevel-level}/${x}_${y}.${format}`));
+                        const url=URL.createObjectURL(new Blob([data], {type: "image/"+format}));
+                        const tile = document.createElement("img");
+                        await new Promise((resolve, reject) => {
+                            tile.onerror = reject;
+                            tile.onload = resolve;
+                            tile.crossOrigin = "anonymous";
+                            tile.src = url;
+                        });
+                        URL.revokeObjectURL(url);
+                        const canvas=document.createElement("canvas");
+                        canvas.width = tilesize;
+                        canvas.height = tilesize;
+                        canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
+                        return canvas;
+                    };
+                }else if(series.bucket){
+                    DZIcfg.Load=async (level,x,y) => {
+                        const json=await dpurlget(`${base}${maxlevel-level}/${x}_${y}.${format}`);
+                        const tile = document.createElement("img");
+                        await new Promise((resolve, reject) => {
+                            tile.onerror = reject;
+                            tile.onload = resolve;
+                            tile.crossOrigin = "anonymous";
+                            tile.src = json.url;
+                        });
+                        const canvas=document.createElement("canvas");
+                        canvas.width = tilesize;
+                        canvas.height = tilesize;
+                        canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
+                        return canvas;
+                    };
+                }else{
+                    DZIcfg.Load=async (level,x,y) => {
+                        let tile = document.createElement("img");
+                        await new Promise((resolve, reject) => {
+                            tile.onerror = reject;
+                            tile.onload = resolve;
+                            tile.crossOrigin = "anonymous";
+                            tile.src = `${oldisv}${base}${maxlevel-level}/${x}_${y}.${format}`;
+                        });
+                        const canvas=document.createElement("canvas");
+                        canvas.width = tilesize;
+                        canvas.height = tilesize;
+                        canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
+                        return canvas;
+                    };
+                }
+                const canvas=document.getElementById("maincnv");
+                zoomer = new ZoomView(canvas,DZIcfg);
+                drawimage();
             }
             function init_undo() {
                 undo_stack = [images[stripidx].anchored ? ouv.slice() : false];
@@ -621,146 +758,29 @@ and open the template in the editor.
             let mainimg = false;
             let marker = false;
             let slice = false;
-            async function drawimage() {
-                drawX("maincnv");
-                if (!ready)
+            function drawimage(){
+                if(!zoomer)
                     return;
-                slice = false;
-                let idx = stripidx;
-                let {width, height, tilesize, overlap, format, base, dzip, maxlevel: level, fullcanvas/*,ouv*/} = images[idx];
-                if(dzip === "loading") {
-                    images[idx].callback = drawimage;
-                    return;
-                }
-                let x = 0, y = 0;
-                let w = mainw, h = mainh;
-                if (w / h < width / height) {
-                    h = Math.floor(w * height / width);
-                    y = (mainh - h) / 2;
+                const {width, height} = active_image;
+                const canvas=document.getElementById("maincnv");
+                const cw = canvas.width;
+                const ch = canvas.height;
+                const w = width;
+                const h = height;
+                if (w / h < cw / ch) {
+                    zoomer.prepare({
+                        cutx: (w - h * cw / ch) / 2,
+                        cuty: 0,
+                        cutw: h * cw / ch,
+                        cuth: h
+                    });
                 } else {
-                    w = Math.floor(h * width / height);
-                    x = (mainw - w) / 2;
-                }
-                mainimg = {x, y, w, h};
-                while (level > 0 && width > w * 2 && height > h * 2) {
-                    level--;
-                    width = (width + 1) >> 1;
-                    height = (height + 1) >> 1;
-                }
-                if (!fullcanvas || (fullcanvas.width < w && fullcanvas.width < width) || (fullcanvas.height < h && fullcanvas.height < height)) {
-                    fullcanvas = document.createElement("canvas");
-                    let ctx = fullcanvas.getContext("2d");
-                    fullcanvas.width = width;
-                    fullcanvas.height = height;
-                    let xtiles = Math.ceil(width / tilesize);
-                    let ytiles = Math.ceil(height / tilesize);
-                    let loads = [];
-                    let wcopy = mainw;
-                    let hcopy = mainh;
-                    //let xx=x,yy=y;
-                    for (let x = 0; x < xtiles; x++)
-                        for (let y = 0; y < ytiles; y++)
-                            loads.push(dzip?dzip.get(dzip.entries.get(`${base}${level}/${x}_${y}.${format}`))
-                                    .then(data => new Promise((resolve, reject) => {
-                                        const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
-                                        let tile = document.createElement("img");
-                                        tile.onload = () => {
-                                            URL.revokeObjectURL(url);
-                                            ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
-                                            resolve();
-                                        };
-                                        tile.src = url;
-                                    }))
-                                :series.bucket?dpurlget(`${base}${level}/${x}_${y}.${format}`)
-                                    .then(json => new Promise((resolve, reject) => {
-                                            let tile = document.createElement("img");
-                                            tile.onerror = reject;
-                                            tile.onload = () => {
-                                                ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
-                                                //if(wcopy===mainw && hcopy===mainh && idx===stripidx)
-                                                //    document.getElementById("maincnv").getContext("2d").drawImage(fullcanvas,xx,yy,w,h);
-                                                resolve();
-                                            };
-                                            tile.crossOrigin = "anonymous";
-                                            tile.src = json.url;
-                                        }))
-                                :new Promise((resolve,reject)=>{
-                                    let tile = document.createElement("img");
-                                    tile.onerror = reject;
-                                    tile.onload = () => {
-                                        ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
-                                        resolve();
-                                    };
-                                    tile.crossOrigin = "anonymous";
-                                    tile.src = `${oldisv}${base}${level}/${x}_${y}.${format}`;
-                                }));
-//                        loads.push(new Promise((resolve,reject)=>{
-//                            let tile=document.createElement("img");
-//                            tile.onerror=reject;
-//                            tile.onload=()=>{
-//                                ctx.drawImage(tile,x*tilesize-(x===0?0:overlap),y*tilesize-(y===0?0:overlap));
-//                                //if(wcopy===mainw && hcopy===mainh && idx===stripidx)
-//                                //    document.getElementById("maincnv").getContext("2d").drawImage(fullcanvas,xx,yy,w,h);
-//                                resolve();
-//                            };
-//                            tile.crossOrigin="anonymous";
-//                            tile.src=base+maxlevel+"/"+x+"_"+y+"."+format;
-//                        }));
-                    await Promise.all(loads);
-                    if (wcopy !== mainw || hcopy !== mainh)
-                        return;
-                    images[idx].fullcanvas = fullcanvas;
-                    if (idx !== stripidx)
-                        return;
-                }
-                ctx = document.getElementById("maincnv").getContext("2d");
-                ctx.clearRect(0, 0, mainw, mainh);
-                ctx.drawImage(fullcanvas, x, y, w, h);
-                let alpha = document.getElementById("mainalpha").valueAsNumber;
-                if (alpha > 0) { // todo: rate limit
-                    let mo = document.getElementById("mainoutline");
-                    mo.disabled = alpha < 100;
-                    if (mo.disabled)
-                        alpha = -alpha;
-                    else
-                        alpha = parseInt(mo.value.substring(1), 16);
-                    slice = {...drawslice(ouv, ctx, x, y, w, h, alpha), x, y, w, h};
-                    drawpop();
-                    if (marker) {
-                        ctx.strokeStyle = "black";
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        switch (marker.type) {
-                            case "cross":
-                                ctx.moveTo(x + w * marker.x - 10, y + h * marker.y);
-                                ctx.lineTo(x + w * marker.x + 10, y + h * marker.y);
-                                ctx.moveTo(x + w * marker.x, y + h * marker.y - 10);
-                                ctx.lineTo(x + w * marker.x, y + h * marker.y + 10);
-                                break;
-                            case "vscale":
-                                ctx.moveTo(0, y + h * marker.y);
-                                ctx.lineTo(mainw, y + h * marker.y);
-                                //                            ctx.moveTo(0,mainy);
-                                //                            ctx.lineTo(mainw,mainy);
-                                break;
-                            case "hscale":
-                                ctx.moveTo(x + w * marker.x, 0);
-                                ctx.lineTo(x + w * marker.x, mainh);
-//                                ctx.moveTo(mainx,0);
-//                                ctx.lineTo(mainx,mainh);
-                                break;
-                            case "rotate":
-                                ctx.moveTo(x + w * marker.x - 5, y + h * marker.y);
-                                ctx.lineTo(x + w * marker.x + 5, y + h * marker.y);
-                                ctx.moveTo(x + w * marker.x, y + h * marker.y - 5);
-                                ctx.lineTo(x + w * marker.x, y + h * marker.y + 5);
-                                ctx.stroke();
-                                ctx.beginPath();
-                                ctx.arc(x + w * marker.x, y + h * marker.y, 10, 3 * Math.PI / 4, Math.PI / 4);
-                                break;
-                        }
-                        ctx.stroke();
-                    }
+                    zoomer.prepare({
+                        cutx: 0,
+                        cuty: (h - w * ch / cw) / 2,
+                        cutw: w,
+                        cuth: w * ch / cw
+                    });
                 }
             }
 
@@ -928,8 +948,9 @@ and open the template in the editor.
             function mup(event) {
                 if (drag) {
                     drag = false;
-                    if(drag_ouv.some((e,i) => e !== ouv[i]))
+                    if(drag_ouv && drag_ouv.some((e,i) => e !== ouv[i]))
                         store_undo();
+                    drag_ouv = false;
                     if (marker) {
                         marker.type = "cross";
                         drawimage();
