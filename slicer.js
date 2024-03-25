@@ -2,7 +2,7 @@ function dataslice(ouv,width,height){
     let [ox,oy,oz,ux,uy,uz,vx,vy,vz]=ouv;
     if(arguments.length===1){
         width=Math.round(Math.sqrt(ux*ux+uy*uy+uz*uz));
-        height=Math.round(Math.sqrt(ux*vx+vy*vy+vz*vz));
+        height=Math.round(Math.sqrt(vx*vx+vy*vy+vz*vz));
     }
     let data=new Uint16Array(width*height);
     let xdim=atlas.xdim;
@@ -28,7 +28,7 @@ function grayslice(ouv,width,height){
     let [ox,oy,oz,ux,uy,uz,vx,vy,vz]=ouv;
     if(arguments.length===1){
         width=Math.round(Math.sqrt(ux*ux+uy*uy+uz*uz));
-        height=Math.round(Math.sqrt(ux*vx+vy*vy+vz*vz));
+        height=Math.round(Math.sqrt(vx*vx+vy*vy+vz*vz));
     }
     let data=new Uint8Array(width*height);
     let xdim=atlas.xdim;
