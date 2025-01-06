@@ -173,7 +173,7 @@ and open the template in the editor.
                 };
 //                let worker=new Worker("getlas.js?"+args.get("atlas"));
 
-                const wfprefix=".nesysWorkflowFiles/zippedPyramids/";
+                const dziproot=series.dziproot ?? ".nesysWorkflowFiles/zippedPyramids/";
                 for (let section of series.sections) {
                     // {"name":"hbp-00167-641_2001_2561_s001.tif","width":22500,"height":17500,"tilesize":254,"overlap":1,"format":"png"}
                     const fullname = section.filename;
@@ -188,7 +188,7 @@ and open the template in the editor.
                         };
                     } else {
                         // "filename":"10000pxtest/2022-268_InjectionSite_5X_Overview_s026.dzip"
-                        const dzip=`${series.bucket}/.nesysWorkflowFiles/zippedPyramids/${fullname}`;
+                        const dzip=`${series.bucket}/${dziproot}${fullname}`;
                         const name=fullname.slice(fullname.lastIndexOf("/")+1,-".dzip".length);
                         image = {...section,filename:name,dzip,base:name+"_files/",flat: name + ".flat"};
                     }
