@@ -80,6 +80,7 @@ $json["token"]=$token;
                 trycollect();
             }
             function cancel(){
+                delete state.filename;
                 document.getElementById("newseries").hidden=true;
                 startup();
             }
@@ -112,8 +113,10 @@ $json["token"]=$token;
                 document.getElementById("create").disabled=collection.length===0 || document.getElementById("atlas").selectedIndex===-1;
             }
             
+            let dziproot;
             function clear(){
                 collection=[];
+                dziproot=false;
                 oldisv=false;
                 tryshow();
             }
@@ -141,6 +144,34 @@ $json["token"]=$token;
                 document.getElementById("filetable").hidden=true;
                 const btns=document.getElementById("dzipbuttons");
                 btns.hidden=true;
+                const dzip=document.getElementById("dzip").value;
+                if(dzip){
+                    bucket=document.getElementById("collab").value.replaceAll(/[^-\w().!]/g, "");
+                    const slash=dzip.lastIndexOf("/");
+                    dziproot=slash===-1?"":dzip.substring(0,slash+1);
+                    const dzips=await dpjson(`${bucket}${dziproot.length?`?prefix=${dziproot}&`:"?"}delimiter=/&limit=10000`)
+                            .then(obj=>obj.objects
+                            .filter(item=>item.hasOwnProperty("name")&&item.name.endsWith(".dzip"))
+                            .map(item=>item.name.substring(slash+1)));
+//                    alert(JSON.stringify(dzips));
+                    for(const dzip of dzips){
+                        if(current!==ctime)return;
+                        prg.innerText="Fetching DZI "+(collection.length+1)+"/"+dzips.length;
+                        const zipdir=await netunzip(
+                                ()=>dpjson(`${bucket}/${dziproot}${dzip}?redirect=false`).then(json=>json.url));
+                        for(const [_,entry] of zipdir.entries) {
+                            if(entry.name.endsWith(".dzi")) {
+                                const data=await zipdir.get(entry);
+                                if(current!==ctime)return;
+                                const dzi=new TextDecoder().decode(data);
+                                collection.push(dzisection(dzi,dzip));
+                                break;
+                            }
+                        }
+                    }
+                    tryshow();
+                    return;
+                }
                 dzipbundles=new Map();
                 try{
                     bucket=document.getElementById("collab").value.replaceAll(/[^-\w().!]/g, "");
@@ -257,6 +288,18 @@ $json["token"]=$token;
                 }));
                 tryshow();
             }
+            async function dzip(){
+                const choice=await dppick({
+                    bucket:document.getElementById("collab").value,
+                    token:state.token,
+                    title:"Pick a DZIP file",
+                    extensions:[".dzip"]
+                });
+                if(choice.pick){
+                    document.getElementById("dzip").value=choice.pick;
+                    trycollect();
+                }
+            }
             async function create(){
                 document.getElementById("create").disabled=true;
                 const series={
@@ -265,6 +308,7 @@ $json["token"]=$token;
                 };
                 if(bucket)series.bucket=bucket;
                 if(oldisv)series.oldisv=oldisv;
+                if(dziproot!==false)series.dziproot=dziproot;
                 const upload=await fetch(
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${state["clb-collab-id"]}/${state.filename}`,{
                             method: "PUT",
@@ -294,6 +338,7 @@ $json["token"]=$token;
             <div id="filename"></div>
             <input oninput="import_link(event)" placeholder="Import LocaliZoom link"><br><br>
             Enter name of image-chunk collab: <input id="collab" oninput="trycollect()"><br>
+            DZIP: <input id="dzip" oninput="trycollect()"> <button onclick="dzip()">Pick...</button><br>
             Target atlas:
             <select id="atlas" onchange="tryshow()">
                 <option value="WHS_SD_Rat_v4_39um">WHS SD Rat v4 39um</option>
