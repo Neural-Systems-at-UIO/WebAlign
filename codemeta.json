@@ -1,0 +1,28 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "type": "SoftwareSourceCode",
+    "author": [
+        {
+            "id": "https://orcid.org/0000-0002-2093-6274",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "NeSys, University of Oslo"
+            },
+            "familyName": "Csucs",
+            "givenName": "Gergely"
+        }
+    ],
+    "codeRepository": "https://github.com/Neural-Systems-at-UIO/WebAlign.git",
+    "dateCreated": "2021-08-31",
+    "dateModified": "2024-03-17",
+    "datePublished": "2021-09-13",
+    "license": "https://spdx.org/licenses/MIT",
+    "name": "WebAlign",
+    "programmingLanguage": "JavaScript",
+    "runtimePlatform": "Web",
+    "version": "0.7",
+    "developmentStatus": "active",
+    "funding": "H2020-EU FPA 650003 (HBP FPA)",
+    "issueTracker": "https://github.com/Neural-Systems-at-UIO/WebAlign/issues"
+}
