@@ -118,7 +118,7 @@ and open the template in the editor.
                 margin: 0 0.2em;
                 box-shadow: 0 1px 0px rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;
                 background-color: #f7f7f7;
-            }        
+            }
         </style>
         <script src="slicer.js"></script>
         <script src="math.js"></script>
@@ -140,7 +140,7 @@ and open the template in the editor.
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketfile}?redirect=false`,
                         {headers: {authorization: `Bearer ${token}`}}).then(response => response.json());
             }
-            const oldisv="https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/";
+            const oldisv = "https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/";
 
             let atlas = {xdim: 1, ydim: 1, zdim: 1};
             let series;
@@ -150,8 +150,8 @@ and open the template in the editor.
             let gray;
             async function startup() {
                 let start = Date.now();
-                if(args.embedded)
-                    document.getElementById("saveas").style.display="none";
+                if (args.embedded)
+                    document.getElementById("saveas").style.display = "none";
                 popup("Loading data");
                 window.addEventListener("resize", resize);
                 resize();
@@ -173,24 +173,24 @@ and open the template in the editor.
                 };
 //                let worker=new Worker("getlas.js?"+args.get("atlas"));
 
-                const dziproot=series.dziproot ?? ".nesysWorkflowFiles/zippedPyramids/";
+                const dziproot = series.dziproot ?? ".nesysWorkflowFiles/zippedPyramids/";
                 for (let section of series.sections) {
                     // {"name":"hbp-00167-641_2001_2561_s001.tif","width":22500,"height":17500,"tilesize":254,"overlap":1,"format":"png"}
                     const fullname = section.filename;
                     let image;
-                    if(!fullname.endsWith(".dzip")){
+                    if (!fullname.endsWith(".dzip")) {
                         const pos = fullname.lastIndexOf(".");
                         const name = fullname.substring(0, pos);
 
 
                         image = {
-                            ...section, base: (series.bucket?series.bucket:series.oldisv) + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
+                            ...section, base: (series.bucket ? series.bucket : series.oldisv) + "/" + fullname + "/" + name + "_files/", flat: name + ".flat"
                         };
                     } else {
                         // "filename":"10000pxtest/2022-268_InjectionSite_5X_Overview_s026.dzip"
-                        const dzip=`${series.bucket}/${dziproot}${fullname}`;
-                        const name=fullname.slice(fullname.lastIndexOf("/")+1,-".dzip".length);
-                        image = {...section,filename:name,dzip,base:name+"_files/",flat: name + ".flat"};
+                        const dzip = `${series.bucket}/${dziproot}${fullname}`;
+                        const name = fullname.slice(fullname.lastIndexOf("/") + 1, -".dzip".length);
+                        image = {...section, filename: name, dzip, base: name + "_files/", flat: name + ".flat"};
                     }
 
                     let w = image.width;
@@ -228,7 +228,8 @@ and open the template in the editor.
                 for (let image of images) {
                     if (image.hasOwnProperty("ouv"))
                         image.anchored = true;
-                    image.snr = parseInt(image.filename.match(/_s(\d+)/)[1]);
+                    if (!image.hasOwnProperty("snr"))
+                        image.snr = parseInt(image.filename.match(/_s(\d+)/)[1]);
                 }
                 propagate();
 
@@ -304,7 +305,7 @@ and open the template in the editor.
 //                cnv.height=parent.offsetHeight;
                 let ctx = cnv.getContext("2d");
                 ctx.save();
-                ctx.fillStyle="lightgray";
+                ctx.fillStyle = "lightgray";
                 ctx.fillRect(0, 0, cnv.width, cnv.height);
                 ctx.restore();
 //                ctx.clearRect(0, 0, cnv.width, cnv.height);
@@ -356,7 +357,7 @@ and open the template in the editor.
                             ctx.fillRect(image.fsx - strippos - 5, 0, image.fsw + 10, 128);
                             ctx.fillStyle = "black";
                         }
-                        const icon=image.icon;
+                        const icon = image.icon;
                         if (typeof icon === "object") {
                             ctx.drawImage(image.icon, image.fsx - strippos, image.fsy, image.fsw, image.fsh);
                             if (alpha !== 0 || !so.disabled)
@@ -364,27 +365,27 @@ and open the template in the editor.
                         } else {
                             ctx.fillRect(image.fsx - strippos, image.fsy, image.fsw, image.fsh);
                             drawslice(image.ouv, ctx, image.fsx - strippos, image.fsy, image.fsw, image.fsh, -100);
-                            if(icon === "loading")
+                            if (icon === "loading")
                                 continue;
-                            const dzip=image.dzip;
-                            if(typeof dzip === "string") {
-                                if(dzip === "loading")
+                            const dzip = image.dzip;
+                            if (typeof dzip === "string") {
+                                if (dzip === "loading")
                                     continue;
-                                image.dzip="loading";
-                                netunzip(()=>dpurlget(dzip).then(json=>json.url)).then(dzip=>{
-                                    image.dzip=dzip;
+                                image.dzip = "loading";
+                                netunzip(() => dpurlget(dzip).then(json => json.url)).then(dzip => {
+                                    image.dzip = dzip;
                                     drawstrip();
-                                    const callback=image.callback;
-                                    if(callback){
+                                    const callback = image.callback;
+                                    if (callback) {
                                         delete image.callback;
                                         callback();
                                     }
                                 });
                                 continue;
                             }
-                            
-                            image.icon="loading";
-                            
+
+                            image.icon = "loading";
+
                             let w = image.width;
                             let h = image.height;
                             let t = image.tilesize;
@@ -394,27 +395,27 @@ and open the template in the editor.
                                 h = (h + 1) >> 1;
                                 l--;
                             }
-                            const img=document.createElement("img");
-                            if(!dzip){
+                            const img = document.createElement("img");
+                            if (!dzip) {
                                 img.onload = () => {
                                     image.icon = img;
                                     drawstrip();
                                 };
                                 img.crossOrigin = "anonymous";
-                                if(series.bucket)
-                                    dpurlget(image.base + l + "/0_0." + image.format).then(json => img.src=json.url);
+                                if (series.bucket)
+                                    dpurlget(image.base + l + "/0_0." + image.format).then(json => img.src = json.url);
                                 else
-                                    img.src=oldisv+image.base+l+"/0_0."+image.format;
-                            }else{
+                                    img.src = oldisv + image.base + l + "/0_0." + image.format;
+                            } else {
                                 dzip.get(dzip.entries.get(image.base + l + "/0_0." + image.format))
-                                        .then(data=>{
-                                            const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
-                                            img.onload=()=>{
+                                        .then(data => {
+                                            const url = URL.createObjectURL(new Blob([data], {type: "image/" + image.format}));
+                                            img.onload = () => {
                                                 URL.revokeObjectURL(url);
-                                                image.icon=img;
+                                                image.icon = img;
                                                 drawstrip();
                                             };
-                                            img.src=url;
+                                            img.src = url;
                                         });
                             }
                         }
@@ -530,9 +531,9 @@ and open the template in the editor.
                 active_image = images[idx];
                 document.getElementById("image").innerText = active_image.filename + "\n" + active_image.width + " x " + active_image.height;
                 ouv = active_image.ouv.slice();
-                
+
                 init_zoomer();
-                
+
                 imagenavi();
 //                drawimage();
                 drawstrip();
@@ -540,25 +541,25 @@ and open the template in the editor.
 //                drawcut();
                 init_undo();
             }
-            
+
             let zoomer;
             function init_zoomer() {
-                if(zoomer)
+                if (zoomer)
                     zoomer.stop();
-                zoomer=false;
+                zoomer = false;
 
                 const {width, height, tilesize, overlap, format, base, dzip, maxlevel, fullcanvas/*,ouv*/} = active_image;
-                if(typeof dzip === "string") {
+                if (typeof dzip === "string") {
                     active_image.callback = init_zoomer;
                     return;
                 }
-                const DZIcfg={
-                    Width:width,
-                    Height:height,
-                    TileSize:tilesize,
-                    MaxLevel:maxlevel
+                const DZIcfg = {
+                    Width: width,
+                    Height: height,
+                    TileSize: tilesize,
+                    MaxLevel: maxlevel
                 };
-                DZIcfg.Overlay=(ctx, canvaswidth, canvasheight, cutx, cuty, cutw, cuth)=>{
+                DZIcfg.Overlay = (ctx, canvaswidth, canvasheight, cutx, cuty, cutw, cuth) => {
                     let x = 0, y = 0;
                     let w = canvaswidth, h = canvasheight;
                     if (w / h < width / height) {
@@ -600,8 +601,8 @@ and open the template in the editor.
                                 case "hscale":
                                     ctx.moveTo(x + w * marker.x, 0);
                                     ctx.lineTo(x + w * marker.x, mainh);
-    //                                ctx.moveTo(mainx,0);
-    //                                ctx.lineTo(mainx,mainh);
+                                    //                                ctx.moveTo(mainx,0);
+                                    //                                ctx.lineTo(mainx,mainh);
                                     break;
                                 case "rotate":
                                     ctx.moveTo(x + w * marker.x - 5, y + h * marker.y);
@@ -618,10 +619,10 @@ and open the template in the editor.
                     }
                 };
                 // TODO: consolidate copy-paste
-                if(dzip){
-                    DZIcfg.Load=async (level,x,y) => {
-                        const data=await dzip.get(dzip.entries.get(`${base}${maxlevel-level}/${x}_${y}.${format}`));
-                        const url=URL.createObjectURL(new Blob([data], {type: "image/"+format}));
+                if (dzip) {
+                    DZIcfg.Load = async (level, x, y) => {
+                        const data = await dzip.get(dzip.entries.get(`${base}${maxlevel - level}/${x}_${y}.${format}`));
+                        const url = URL.createObjectURL(new Blob([data], {type: "image/" + format}));
                         const tile = document.createElement("img");
                         await new Promise((resolve, reject) => {
                             tile.onerror = reject;
@@ -630,15 +631,15 @@ and open the template in the editor.
                             tile.src = url;
                         });
                         URL.revokeObjectURL(url);
-                        const canvas=document.createElement("canvas");
+                        const canvas = document.createElement("canvas");
                         canvas.width = tilesize;
                         canvas.height = tilesize;
                         canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
                         return canvas;
                     };
-                }else if(series.bucket){
-                    DZIcfg.Load=async (level,x,y) => {
-                        const json=await dpurlget(`${base}${maxlevel-level}/${x}_${y}.${format}`);
+                } else if (series.bucket) {
+                    DZIcfg.Load = async (level, x, y) => {
+                        const json = await dpurlget(`${base}${maxlevel - level}/${x}_${y}.${format}`);
                         const tile = document.createElement("img");
                         await new Promise((resolve, reject) => {
                             tile.onerror = reject;
@@ -646,30 +647,30 @@ and open the template in the editor.
                             tile.crossOrigin = "anonymous";
                             tile.src = json.url;
                         });
-                        const canvas=document.createElement("canvas");
+                        const canvas = document.createElement("canvas");
                         canvas.width = tilesize;
                         canvas.height = tilesize;
                         canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
                         return canvas;
                     };
-                }else{
-                    DZIcfg.Load=async (level,x,y) => {
+                } else {
+                    DZIcfg.Load = async (level, x, y) => {
                         let tile = document.createElement("img");
                         await new Promise((resolve, reject) => {
                             tile.onerror = reject;
                             tile.onload = resolve;
                             tile.crossOrigin = "anonymous";
-                            tile.src = `${oldisv}${base}${maxlevel-level}/${x}_${y}.${format}`;
+                            tile.src = `${oldisv}${base}${maxlevel - level}/${x}_${y}.${format}`;
                         });
-                        const canvas=document.createElement("canvas");
+                        const canvas = document.createElement("canvas");
                         canvas.width = tilesize;
                         canvas.height = tilesize;
                         canvas.getContext("2d").drawImage(tile, x === 0 ? 0 : -overlap, y === 0 ? 0 : -overlap);
                         return canvas;
                     };
                 }
-                const canvas=document.getElementById("maincnv");
-                zoomer = new ZoomView(canvas,DZIcfg);
+                const canvas = document.getElementById("maincnv");
+                zoomer = new ZoomView(canvas, DZIcfg);
                 drawimage();
             }
             function init_undo() {
@@ -682,7 +683,7 @@ and open the template in the editor.
                 active_image.ouv = ouv.slice();
                 undo_pos++;
                 undo_stack.splice(undo_pos);
-                undo_stack.push(clearing?false:ouv.slice());
+                undo_stack.push(clearing ? false : ouv.slice());
                 document.getElementById("undo").disabled = false;
                 document.getElementById("redo").disabled = true;
 
@@ -701,12 +702,13 @@ and open the template in the editor.
 
                 propagate();
                 drawstrip();
+                updateaux();
             }
             function apply_xdo() {
                 document.getElementById("undo").disabled = undo_pos === 0;
                 document.getElementById("redo").disabled = undo_pos === undo_stack.length - 1;
                 const item = undo_stack[undo_pos];
-                if(item) {
+                if (item) {
                     active_image.anchored = true;
                     ouv = item.slice();
                     active_image.ouv = item.slice();
@@ -714,11 +716,12 @@ and open the template in the editor.
                     active_image.anchored = false;
                 }
                 propagate();
-                if(!item)
+                if (!item)
                     ouv = active_image.ouv.slice();
 
                 imagenavi();
                 drawstrip();
+                updateaux();
             }
             function undo() {
                 undo_pos--;
@@ -758,11 +761,11 @@ and open the template in the editor.
             let mainimg = false;
             let marker = false;
             let slice = false;
-            function drawimage(){
-                if(!zoomer)
+            function drawimage() {
+                if (!zoomer)
                     return;
                 const {width, height} = active_image;
-                const canvas=document.getElementById("maincnv");
+                const canvas = document.getElementById("maincnv");
                 const cw = canvas.width;
                 const ch = canvas.height;
                 const w = width;
@@ -940,15 +943,15 @@ and open the template in the editor.
             function drawcut() {
 
             }
-            
-            let storeclick=false;
+
+            let storeclick = false;
 
             let drag_ouv;
             let drag = false;
             function mup(event) {
                 if (drag) {
                     drag = false;
-                    if(drag_ouv && drag_ouv.some((e,i) => e !== ouv[i]))
+                    if (drag_ouv && drag_ouv.some((e, i) => e !== ouv[i]))
                         store_undo();
                     drag_ouv = false;
                     if (marker) {
@@ -967,8 +970,8 @@ and open the template in the editor.
                 return v >= c - r && v <= c + r;
             }
             function ndrag(event) {
-                if(storeclick){
-                    storeclick=false;
+                if (storeclick) {
+                    storeclick = false;
                     store_undo();
                 }
 //                ctx.arc(npoints[4][1],npoints[4][2],3,0,Math.PI*2);
@@ -997,8 +1000,8 @@ and open the template in the editor.
                 drawpop();
             }
             function maindrag(event) {
-                if(storeclick){
-                    storeclick=false;
+                if (storeclick) {
+                    storeclick = false;
                     store_undo();
                 }
                 drag = {type: "mdrag", x: event.offsetX, y: event.offsetY};
@@ -1485,14 +1488,14 @@ and open the template in the editor.
                 }
                 drawstrip();
             }
-            
+
             function clickstep(coord, dir) {
-                storeclick=true;
+                storeclick = true;
                 ouv[coord] += document.getElementById("panstep").valueAsNumber * dir;
                 imagenavi();
             }
             function clickrot(c1, c2, dir) {
-                storeclick=true;
+                storeclick = true;
                 const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
                 const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
@@ -1502,7 +1505,7 @@ and open the template in the editor.
                 imagenavi();
             }
             function mainstep(x, y) {
-                storeclick=true;
+                storeclick = true;
                 let step = document.getElementById("panstep").valueAsNumber;
                 decomp(ouv);
                 for (let i = 0; i < 3; i++) {
@@ -1513,7 +1516,7 @@ and open the template in the editor.
                 imagenavi();
             }
             function mainrot(dir) {
-                storeclick=true;
+                storeclick = true;
                 const angle = document.getElementById("rotstep").valueAsNumber * dir * Math.PI / 180;
                 const sincos = [Math.sin(angle), Math.cos(angle)];
                 decomp(ouv);
@@ -1529,6 +1532,49 @@ and open the template in the editor.
             function toggleHelp() {
                 const help = document.getElementById("help");
                 help.style.display = help.style.display !== "block" ? "block" : "none";
+            }
+
+            function msgHandler(event){
+                if(event.data==="ready.")
+                    updateaux();
+                else
+                    activateslice(event.data);
+//                console.log(event.data,typeof event.data);
+            }
+            addEventListener("message",msgHandler,false);
+
+            const aux_name=Date.now().toString();
+            let aux_wnd=false;
+            addEventListener("beforeunload",()=>aux_wnd && aux_wnd.close());
+            function checkaux(){
+                if(aux_wnd && aux_wnd.closed)
+                    aux_wnd=false;
+                return aux_wnd;
+            }
+            
+            function updateaux(){
+                if(!checkaux())
+                    return;
+                aux_wnd.postMessage({
+                    mode:series.mode,
+                    idx:series.current,
+            sections:images.map(section=>({
+                    filename:section.filename,
+                    width:section.width,
+                    height:section.height,
+                    snr:section.snr,
+                    ouv:section.ouv,
+                    anchored:section.anchored
+                }))});
+            }
+            
+            function auxwnd() {
+                if(aux_wnd && aux_wnd.closed)
+                    aux_wnd=false;
+                if(aux_wnd)
+                    aux_wnd.focus();
+                else
+                    aux_wnd=open("diagrams.html",aux_name);
             }
         </script>
     </head>
@@ -1564,7 +1610,7 @@ and open the template in the editor.
             </div>
             <hr>
             <!--<button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>-->
-            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button>
+            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><!--<button onclick="ouv_clear()">Clear</button>-->
             <hr>
             <select id="mode" oninput="angles()">
                 <option>Coronal</option>
@@ -1574,7 +1620,8 @@ and open the template in the editor.
             <input type="number" id="rot1" min="-90" max="90" step="0.1" oninput="docalc()">
             <input type="number" id="rot2" min="-180" max="180" step="0.1" oninput="docalc()">
             <input type="number" id="rot3" min="-180" max="180" step="0.1" oninput="docalc()"><br>
-            <button onclick="unify()">Apply to all</button>
+            <button onclick="unify()">Apply to all</button><br>
+            <button onclick="auxwnd()">Diagrams</button>
             <div id="log" hidden></div>
         </div>
         <div id="hsiz" class="hsep" onmousedown="hresize(event)"></div>

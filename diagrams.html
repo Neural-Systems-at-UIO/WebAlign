@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this template
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="math.js"></script>
+        <script>
+            let data = false;
+            let current = false;
+            let mode = 0;
+            addEventListener("message", msgHandler, false);
+            function msgHandler(event) {
+                document.getElementById("log").innerText = JSON.stringify(event.data, null, 4);
+
+                data = event.data.sections.map(section => {
+                    const {filename, width, height, snr, ouv, anchored} = section;
+
+                    const o = ouv.slice(0, 3);
+                    const u = ouv.slice(3, 6);
+                    const v = ouv.slice(6, 9);
+                    const corners = [];
+                    for (let w of [[0, 0], [0, 1], [1, 1], [1, 0]])
+                        corners.push(o.map((c, i) => c + u[i] * w[0] + v[i] * w[1]));
+                    const midpoint = o.map((c, i) => c + u[i] / 2 + v[i] / 2);
+
+                    const coordinates = [snr, ...midpoint, ...rot123uvfrom(section.ouv, 0).map(r => deg(r)).slice(0, 3)];
+
+                    return {filename, width, height, snr, ouv, anchored, corners, midpoint, coordinates};
+                });
+
+                for (let i = 0; i < data.length - 1; i++) {
+                    const section = data[i];
+                    section.coordinates.push(...section.midpoint.map((c, idx) => i === 0 ? data[1].midpoint[idx] - c : c - data[i - 1].midpoint[idx]));
+                }
+
+                const lraxes = [0, 1, 2].map(() => new LinReg);
+                for (const section of data)
+                    for (let i = 0; i < 3; i++)
+                        lraxes[i].add(section.snr, section.midpoint[i]);
+                const A = [0, 1, 2].map(i => lraxes[i].get(data[0].snr));
+                const B = [0, 1, 2].map(i => lraxes[i].get(data[data.length - 1].snr));
+                const BmA = B.map((b, i) => b - A[i]);
+                for (const section of data) {
+                    const {ouv} = section;
+                    const u = ouv.slice(3, 6);
+                    const v = ouv.slice(6, 9);
+                    const uxv = cross(u, v);
+                    const OmA = A.map((a, i) => ouv[i] - a);
+                    section.coordinates.push(section.t = dot(OmA, uxv) * 100 / dot(BmA, uxv));
+                }
+                for (let i = 0; i < data.length - 1; i++) {
+                    const section = data[i];
+                    section.coordinates.push(i === 0 ? data[1].t - section.t : section.t - data[i - 1].t);
+                }
+
+                redraw();
+            }
+
+            opener.postMessage("ready.");
+
+            function steps(min, max, scale, spacing) {
+                const target_spacing = spacing / scale;
+            }
+
+            const ml = 20, mr = 20, mt = 20, mb = 20, arw = 15, grid = 60;
+            const diagram = {};
+            function setupCanvas(minx, miny, maxx, maxy) {
+                const d = diagram;
+                d.minx = minx;
+                d.miny = miny;
+                d.maxx = maxx;
+                d.maxy = maxy;
+                const w = window.innerWidth - 40 - 200 - ml - mr;
+                const h = window.innerHeight - 70 - mt - mb;
+                const s = d.scl = Math.min(w / (maxx - minx), h / (maxy - miny));
+                const cnv = d.cnv = document.getElementById("cnv");
+                const ctx = d.ctx = cnv.getContext("2d");
+                const width = cnv.width = (maxx - minx) * s + ml + mr;
+                const height = cnv.height = (maxy - miny) * s + mt + mb;
+                ctx.clearRect(0, 0, cnv.width, cnv.height);
+
+                ctx.save();
+
+                ctx.strokeStyle = "black";
+
+//                const diag_height=(maxy-miny)*s;
+//                const vert_gridlines=diag_height/grid;
+//                const vert_spacing=(maxy-miny)/vert_gridlines;
+                const vert_spacing = grid / s;
+                // 477.8169800203971 1.605217127208954 767 60 12.783333333333333 37.378120992469135
+                // console.log(maxy-miny,s,diag_height,grid,vert_gridlines,vert_spacing);
+                const vert_factor = Math.pow(10, Math.floor(Math.log10(vert_spacing)));
+                const vert_nice_spacing = vert_factor * Math.round(vert_spacing / vert_factor);
+                //console.log(vert_nice_spacing);
+                for (let y = vert_nice_spacing * Math.ceil(miny / vert_nice_spacing); y < maxy; y += vert_nice_spacing) {
+                    moveTo(minx, y);
+                    lineTo(maxx, y);
+                    ctx.strokeText(y, 0, ty(y));
+                }
+
+                const diag_width = (maxx - minx) * s;
+                const horz_gridlines = diag_width / grid;
+                const horz_spacing = (maxx - minx) / horz_gridlines;
+                const horz_factor = Math.pow(10, Math.floor(Math.log10(horz_spacing)));
+                const horz_nice_spacing = horz_factor * Math.round(horz_spacing / horz_factor);
+                for (let x = horz_nice_spacing * Math.ceil(minx / horz_nice_spacing); x < maxx; x += horz_nice_spacing) {
+                    moveTo(x, miny);
+                    lineTo(x, maxy);
+                    ctx.strokeText(x, tx(x), height);
+                }
+
+                ctx.stroke();
+
+
+
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 2;
+                ctx.fillStyle = "black";
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(ml, mt);
+                ctx.lineTo(ml - arw, mt + arw);
+                ctx.lineTo(ml + arw, mt + arw);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.lineTo(ml, mt);
+                ctx.lineTo(ml, height - mb);
+                ctx.lineTo(width - mr, height - mb);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(width - mr, height - mb);
+                ctx.lineTo(width - mr - arw, height - mb - arw);
+                ctx.lineTo(width - mr - arw, height - mb + arw);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+            function tx(x) {
+                const {minx, scl} = diagram;
+                return ml + (x - minx) * scl;
+            }
+            function ty(y) {
+                const {maxy, scl} = diagram;
+                return mt + (maxy - y) * scl;
+            }
+            function moveTo(x, y) {
+                diagram.ctx.moveTo(tx(x), ty(y));
+            }
+            function lineTo(x, y) {
+                diagram.ctx.lineTo(tx(x), ty(y));
+            }
+
+//            const corners = [[0, 0], [0, 1], [1, 1], [1, 0]];
+            function redraw() {
+                const typ = document.getElementById("view").selectedIndex;
+                document.getElementById("axis1").hidden=document.getElementById("axis2").hidden=typ<3;
+                const cnv = document.getElementById("cnv");
+                const ctx = cnv.getContext("2d");
+                if (typ < 3) {
+                    const min = [Number.MAX_VALUE, Number.MAX_VALUE];
+                    const max = min.map(x => -x);
+                    const pair = [[1, 0], [0, 2], [1, 2]][typ];
+                    for (const section of data)
+                        for (const corner of section.corners)
+                            for (const idx of [0, 1]) {
+                                const coord = corner[pair[idx]];
+                                if (coord < min[idx])
+                                    min[idx] = coord;
+                                if (coord > max[idx])
+                                    max[idx] = coord;
+                            }
+                    setupCanvas(...min, ...max);
+                    ctx.strokeStyle = "black";
+                    for (const section of data) {
+                        ctx.beginPath();
+//                        ctx.moveTo(section.corners[0][pair[0]] - min[0] + 20, section.corners[0][pair[1]] - min[1] + 20);
+                        moveTo(section.corners[0][pair[0]], section.corners[0][pair[1]]);
+                        for (const corner of section.corners)
+                            lineTo(corner[pair[0]], corner[pair[1]]);
+//                            ctx.lineTo(corner[pair[0]] - min[0] + 20, corner[pair[1]] - min[1] + 20);
+                        ctx.closePath();
+                        ctx.stroke();
+                        section.diagx = section.midpoint[pair[0]];
+                        -min[0] + 20;
+                        section.diagy = section.midpoint[pair[1]];
+                        -min[1] + 20;
+                    }
+                } else {
+                    const axis1 = document.getElementById("axis1").selectedIndex;
+                    const axis2 = document.getElementById("axis2").selectedIndex;
+                    let minx = Number.MAX_VALUE;
+                    let miny = Number.MAX_VALUE;
+                    let maxx = -minx;
+                    let maxy = -miny;
+                    for (const section of data) {
+//                        const numbers = [section.snr, ...section.ouv.slice(0, 3), ...rot123uvfrom(section.ouv, 0).map(r => deg(r))];
+                        const x = section.diagx = section.coordinates[axis1];
+                        const y = section.diagy = section.coordinates[axis2];
+                        if (minx > x)
+                            minx = x;
+                        if (maxx < x)
+                            maxx = x;
+                        if (miny > y)
+                            miny = y;
+                        if (maxy < y)
+                            maxy = y;
+                    }
+                    setupCanvas(minx, miny, maxx, maxy);
+//                    cnv.width = maxx - minx + 40;
+//                    cnv.height = maxy - miny + 40;
+//                    for (const section of data) {
+//                        section.diagx -= minx - 20;
+//                        section.diagy -= miny - 20;
+//                    }
+                }
+                ctx.lineWidth = 2;
+                if (typ < 3) {
+                    ctx.strokeStyle = "red";
+                    ctx.beginPath();
+                    moveTo(data[0].diagx, data[0].diagy);
+                    for (const section of data)
+                        lineTo(section.diagx, section.diagy);
+                    ctx.stroke();
+                } else {
+                    let prev = false;
+                    for (const section of data) {
+                        const curr = [section.diagx, section.diagy];
+                        if (prev) {
+                            ctx.beginPath();
+                            moveTo(...prev);
+                            lineTo(...curr);
+                            ctx.strokeStyle = ["blue", "black", "red"][Math.sign(curr[1] - prev[1]) + 1];
+                            ctx.stroke();
+                        }
+                        prev = curr;
+                    }
+                }
+                ctx.fillStyle = "red";
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "blue";
+                for (const section of data) {
+                    ctx.beginPath();
+                    ctx.ellipse(tx(section.diagx), ty(section.diagy), 5, 5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+
+            function mmove(event) {
+                let item = false;
+                for (const section of data)
+                    if (Math.hypot(event.offsetX - tx(section.diagx), event.offsetY - ty(section.diagy)) <= 5)
+                        item = section;
+                const pop = document.getElementById("pop");
+                pop.style.display = item ? "block" : "none";
+                if (item) {
+                    pop.style.left = event.clientX + 15 + "px";
+                    pop.style.top = event.clientY - 15 + "px";
+                    pop.innerText = item.filename + "\n" + item.diagx + " " + item.diagy;
+                } else {
+                }
+            }
+            function dclick(event) {
+                let idx = -1;
+                for (let i = 0; i < data.length; i++) {
+                    const section = data[i];
+                    if (Math.hypot(event.offsetX - tx(section.diagx), event.offsetY - ty(section.diagy)) <= 5)
+                        idx = i;
+                }
+                if (idx >= 0) {
+                    opener.postMessage(idx);
+                    opener.focus();
+                }
+            }
+
+            function rot123uvfrom(ouv, mode) {
+                let u = ouv.slice(3, 6);
+                let v = ouv.slice(6);
+                let ul = normalize(u, 0);
+                let vl = normalize(v, 0);
+                let n = cross(u, v);
+                normalize(n, 0);
+                let rot1, rot2, baseu;
+                switch (mode) {
+                    case 0:
+                        rot1 = Math.asin(clamp(n[2]));
+                        rot2 = Math.atan2(n[0], n[1]);
+                        baseu = [Math.cos(rot2), -Math.sin(rot2), 0];
+                        break;
+                    case 1:
+                        rot1 = -Math.asin(clamp(n[2]));
+                        rot2 = -Math.atan2(n[1], n[0]);
+                        baseu = [-Math.sin(rot2), -Math.cos(rot2), 0];
+                        break;
+                    case 2:
+                        rot1 = Math.asin(clamp(n[0]));
+                        rot2 = -Math.atan2(n[1], n[2]);
+                        baseu = [0, -Math.cos(rot2), -Math.sin(rot2)];
+                        break;
+                }
+                let rot3 = Math.acos(clamp(dot(u, baseu))) * Math.sign(dot(cross(u, baseu), n));
+                return [rot1, rot2, rot3, ul, vl];
+            }
+        </script>
+    </head>
+    <body>
+        <select id="view" onchange="redraw()">
+            <option>top view</option>
+            <option>front view</option>
+            <option>side view</option>
+            <option>diagrams</option>
+        </select><br>
+        <select id="axis1" onchange="redraw()">
+            <option># snr</option>
+            <option>x (L-R)</option>
+            <option>y (A-P)</option>
+            <option>z (I-S)</option>
+            <option>primary angle</option>
+            <option>secondary angle</option>
+            <option>planar angle</option>
+            <option>x spacing (L-R)</option>
+            <option>y spacing (A-P)</option>
+            <option>z spacing (I-S)</option>
+            <option>internal axis</option>
+            <option>internal spacing</option>
+        </select>
+        <select id="axis2" onchange="redraw()">
+            <option># snr</option>
+            <option>x (L-R)</option>
+            <option>y (A-P)</option>
+            <option>z (I-S)</option>
+            <option>primary angle</option>
+            <option>secondary angle</option>
+            <option>planar angle</option>
+            <option>x spacing (L-R)</option>
+            <option>y spacing (A-P)</option>
+            <option>z spacing (I-S)</option>
+            <option>internal axis</option>
+            <option>internal spacing</option>
+        </select><br>
+
+        <canvas id="cnv" onmousemove="mmove(event)" ondblclick="dclick(event)" style="border:1px solid green;background: lightblue;"></canvas><br>
+        <pre id="log" style="display:none">TODO write content</pre>
+        <div id="pop" style="position:absolute;background:white;padding: 10px"></div>
+    </body>
+</html>
