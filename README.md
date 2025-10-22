@@ -19,7 +19,7 @@ https://webalign.readthedocs.io/en/latest/index.html
 - Source code: MIT License
 
 # Current version
--v0.7
+- v0.7
 
 # Citation
 Puchades MA, Yates SC, Csucs G, Carey H, Balkir A, Leergaard TB, Bjaalie JG. Software and pipelines for registration and analyses of rodent brain image data in reference atlas space. Front Neuroinform. 2025 Sep 24;19:1629388. https://doi.org/10.3389/fninf.2025.1629388
