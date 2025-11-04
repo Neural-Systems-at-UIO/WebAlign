@@ -16,7 +16,7 @@ https://webalign.readthedocs.io/en/latest/index.html
 
 # Contributors
 - Programming: Gergely Csucs
-- Conception, design, validation: Gergely Csucs, Maja A Puchades, Sharon Yates, Jan G Bjaalie.
+- Conception, design, validation: Gergely Csucs, Maja A Puchades, Sharon C Yates, Jan G Bjaalie.
 
 # Licence
 - Source code: MIT License
