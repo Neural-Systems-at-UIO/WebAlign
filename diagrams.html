@@ -17,6 +17,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
             function msgHandler(event) {
                 document.getElementById("log").innerText = JSON.stringify(event.data, null, 4);
 
+                mode = event.data.mode;
                 data = event.data.sections.map(section => {
                     const {filename, width, height, snr, ouv, anchored} = section;
 
@@ -28,10 +29,12 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                         corners.push(o.map((c, i) => c + u[i] * w[0] + v[i] * w[1]));
                     const midpoint = o.map((c, i) => c + u[i] / 2 + v[i] / 2);
 
-                    const coordinates = [snr, ...midpoint, ...rot123uvfrom(section.ouv, 0).map(r => deg(r)).slice(0, 3)];
+                    const coordinates = [snr, ...midpoint, ...rot123uvfrom(section.ouv, mode).map(r => deg(r)).slice(0, 3)];
 
                     return {filename, width, height, snr, ouv, anchored, corners, midpoint, coordinates};
                 });
+
+                current = data[event.data.idx];
 
                 for (let i = 0; i < data.length - 1; i++) {
                     const section = data[i];
@@ -67,7 +70,9 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                 const target_spacing = spacing / scale;
             }
 
-            const ml = 20, mr = 20, mt = 20, mb = 20, arw = 15, grid = 60;
+            const /*ml = 30,*/ mr = 20, mt = 20, /*mb = 25,*/ arw = 15, grid = 60;
+            let ml = 30;
+            let mb = 25;
             const diagram = {};
             function setupCanvas(minx, miny, maxx, maxy) {
                 const d = diagram;
@@ -75,16 +80,23 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                 d.miny = miny;
                 d.maxx = maxx;
                 d.maxy = maxy;
+                const cnv = d.cnv = document.getElementById("cnv");
+                const ctx = d.ctx = cnv.getContext("2d");
+                ctx.save();
+                ctx.font = "12px sans-serif";
+                console.log(miny,maxy);
+                ml=Math.max(ctx.measureText(miny).width,ctx.measureText(maxy).width)
+                +12/*ctx.measureText(axis2.value).height*/;
+                mb=12/*Math.max(ctx.measureText(minx).height,ctx.measureText(maxx).height)*/
+                +12/*ctx.measureText(axis1.value).height*/;
+        console.log(ml,mb);
+                
                 const w = window.innerWidth - 40 - 200 - ml - mr;
                 const h = window.innerHeight - 70 - mt - mb;
                 const s = d.scl = Math.min(w / (maxx - minx), h / (maxy - miny));
-                const cnv = d.cnv = document.getElementById("cnv");
-                const ctx = d.ctx = cnv.getContext("2d");
                 const width = cnv.width = (maxx - minx) * s + ml + mr;
                 const height = cnv.height = (maxy - miny) * s + mt + mb;
                 ctx.clearRect(0, 0, cnv.width, cnv.height);
-
-                ctx.save();
 
                 ctx.strokeStyle = "black";
 
@@ -97,10 +109,11 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                 const vert_factor = Math.pow(10, Math.floor(Math.log10(vert_spacing)));
                 const vert_nice_spacing = vert_factor * Math.round(vert_spacing / vert_factor);
                 //console.log(vert_nice_spacing);
+                ctx.textAlign = "right";
                 for (let y = vert_nice_spacing * Math.ceil(miny / vert_nice_spacing); y < maxy; y += vert_nice_spacing) {
                     moveTo(minx, y);
                     lineTo(maxx, y);
-                    ctx.strokeText(y, 0, ty(y));
+                    ctx.strokeText(y, ml - 5, ty(y));
                 }
 
                 const diag_width = (maxx - minx) * s;
@@ -108,10 +121,11 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                 const horz_spacing = (maxx - minx) / horz_gridlines;
                 const horz_factor = Math.pow(10, Math.floor(Math.log10(horz_spacing)));
                 const horz_nice_spacing = horz_factor * Math.round(horz_spacing / horz_factor);
+                ctx.textAlign = "center";
                 for (let x = horz_nice_spacing * Math.ceil(minx / horz_nice_spacing); x < maxx; x += horz_nice_spacing) {
                     moveTo(x, miny);
                     lineTo(x, maxy);
-                    ctx.strokeText(x, tx(x), height);
+                    ctx.strokeText(x, tx(x), height - 5);
                 }
 
                 ctx.stroke();
@@ -163,7 +177,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
 //            const corners = [[0, 0], [0, 1], [1, 1], [1, 0]];
             function redraw() {
                 const typ = document.getElementById("view").selectedIndex;
-                document.getElementById("axis1").hidden=document.getElementById("axis2").hidden=typ<3;
+                document.getElementById("adv_group").hidden = document.getElementById("axis2").hidden = typ < 3;
                 const cnv = document.getElementById("cnv");
                 const ctx = cnv.getContext("2d");
                 if (typ < 3) {
@@ -245,12 +259,18 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                         prev = curr;
                     }
                 }
-                ctx.fillStyle = "red";
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = "blue";
                 for (const section of data) {
+                    if (section === current) {
+                        ctx.beginPath();
+                        ctx.ellipse(tx(section.diagx), ty(section.diagy), 10, 10, 0, 0, Math.PI * 2);
+                        ctx.fillStyle = "orange";
+                        ctx.fill();
+                    }
                     ctx.beginPath();
                     ctx.ellipse(tx(section.diagx), ty(section.diagy), 5, 5, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = section.anchored ? "green" : "red";
                     ctx.fill();
                     ctx.stroke();
                 }
@@ -311,6 +331,17 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
                 let rot3 = Math.acos(clamp(dot(u, baseu))) * Math.sign(dot(cross(u, baseu), n));
                 return [rot1, rot2, rot3, ul, vl];
             }
+            function set_adv(event){
+                if(event.target.checked){
+                    adv_span.hidden=true;
+                    axis1.hidden=false;
+                }else{
+                    adv_span.hidden=false;
+                    axis1.hidden=true;
+                    axis1.selectedIndex=0;
+                    redraw();
+                }
+            }
         </script>
     </head>
     <body>
@@ -320,20 +351,6 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
             <option>side view</option>
             <option>diagrams</option>
         </select><br>
-        <select id="axis1" onchange="redraw()">
-            <option># snr</option>
-            <option>x (L-R)</option>
-            <option>y (A-P)</option>
-            <option>z (I-S)</option>
-            <option>primary angle</option>
-            <option>secondary angle</option>
-            <option>planar angle</option>
-            <option>x spacing (L-R)</option>
-            <option>y spacing (A-P)</option>
-            <option>z spacing (I-S)</option>
-            <option>internal axis</option>
-            <option>internal spacing</option>
-        </select>
         <select id="axis2" onchange="redraw()">
             <option># snr</option>
             <option>x (L-R)</option>
@@ -347,8 +364,24 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
             <option>z spacing (I-S)</option>
             <option>internal axis</option>
             <option>internal spacing</option>
-        </select><br>
-
+        </select>
+        <span id="adv_group" style="border: solid 1px gray" hidden><input type="checkbox" onchange="set_adv(event)">
+            <span id="adv_span">Advanced</span>
+            <select id="axis1" onchange="redraw()" hidden>
+                <option># snr</option>
+                <option>x (L-R)</option>
+                <option>y (A-P)</option>
+                <option>z (I-S)</option>
+                <option>primary angle</option>
+                <option>secondary angle</option>
+                <option>planar angle</option>
+                <option>x spacing (L-R)</option>
+                <option>y spacing (A-P)</option>
+                <option>z spacing (I-S)</option>
+                <option>internal axis</option>
+                <option>internal spacing</option>
+            </select>
+        </span><br>
         <canvas id="cnv" onmousemove="mmove(event)" ondblclick="dclick(event)" style="border:1px solid green;background: lightblue;"></canvas><br>
         <pre id="log" style="display:none">TODO write content</pre>
         <div id="pop" style="position:absolute;background:white;padding: 10px"></div>

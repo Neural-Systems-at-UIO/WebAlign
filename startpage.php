@@ -31,6 +31,10 @@ $json["token"]=$token;
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/inflater.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
         <style>
+            html{
+                font-family: 'Inter','Source Sans Pro',sans-serif;
+                font-size: 16px;
+            }
             .error{
                 color: red;
                 font-weight: bold;
