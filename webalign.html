@@ -122,6 +122,9 @@ and open the template in the editor.
                 box-shadow: 0 1px 0px rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;
                 background-color: #f7f7f7;
             }
+            #contrast,#contrast_head{
+                visibility: hidden;
+            }
         </style>
         <script src="slicer.js"></script>
         <script src="math.js"></script>
@@ -153,8 +156,10 @@ and open the template in the editor.
             let gray;
             async function startup() {
                 let start = Date.now();
-                if (args.embedded)
-                    document.getElementById("saveas").style.display = "none";
+                if (args.embedded){
+                    document.getElementById("btn_saveas").style.display = "none";
+                    document.getElementById("btn_export").style.display = "none";
+                }
                 popup("Loading data");
                 window.addEventListener("resize", resize);
                 resize();
@@ -444,23 +449,21 @@ and open the template in the editor.
             
             let scrollpick = false;
             function scrolldown(event) {
-                scrollpick = false;
                 if(!scroller)
                     return;
                 const x=event.offsetX;
                 if(x<scroller.pos || x>scroller.pos+scroller.size){
                     strippos = (x-scroller.size/2)*fsw/width;
                     drawstrip();
-                }else{
-                    scrollpick = {pos:strippos,x};
                 }
+                scrollpick = {pos:strippos,x:event.clientX};
             }
             function scrollup() {
                 scrollpick = false;
             }
             function scrollmove(event) {
                 if(scroller && scrollpick) {
-                    strippos = scrollpick.pos+(event.offsetX-scrollpick.x)*fsw/width;
+                    strippos = scrollpick.pos+(event.clientX-scrollpick.x)*fsw/width;
                     drawstrip();
                 }
             }
@@ -819,6 +822,22 @@ and open the template in the editor.
                 if (!ready)
                     return;
                 store_undo(false);
+            }
+            function ouv_center() {
+                store_undo(false);
+                ouv = [
+                        [0, atlas.ydim / 2, atlas.zdim - 1,
+                            atlas.xdim, 0, 0,
+                            0, 0, -atlas.zdim],
+                        [atlas.xdim / 2, atlas.ydim - 1, atlas.zdim - 1,
+                            0, -atlas.ydim, 0,
+                            0, 0, -atlas.zdim],
+                        [0, atlas.ydim - 1, atlas.zdim / 2,
+                            0, -atlas.ydim, 0,
+                            atlas.xdim, 0, 0]
+                ][document.getElementById("mode").selectedIndex];
+                active_image.ouv=ouv.slice();
+                drawimage();drawstrip();drawnavi();updateaux();
             }
 
             let mainimg = false;
@@ -1209,6 +1228,7 @@ and open the template in the editor.
                             anchoring = true;
                     }
                 if (anchoring === false) {
+                    const keyslice = active_image ?? images[Math.min(images.length - 1, (images.length >> 1) + 1)];
 //                    let keyslice = images[Math.min(images.length - 1, (images.length >> 1) + 1)];
 //                    const keyslice = active_image;
   
@@ -1245,7 +1265,7 @@ and open the template in the editor.
 //                        atlas.xdim, 0, 0,
 //                        0, 0, -atlas.zdim
 //                    ];
-                    decomp(ouv, active_image.width, active_image.height);
+                    decomp(ouv, keyslice.width, keyslice.height);
                     for (let image of images)
                         recomp(image.ouv = ouv.slice(), image.width, image.height);
                 } else if (anchoring !== true) {
@@ -1711,17 +1731,24 @@ and open the template in the editor.
                 else
                     aux_wnd=open("diagrams.html",aux_name);
             }
+            
+            function changemodality(event){
+                const visibility=["hidden","visible"][event.target.selectedIndex];
+                document.getElementById("contrast").style.visibility=visibility;
+                document.getElementById("contrast_head").style.visibility=visibility;
+                drawimage();drawstrip();drawnavi();
+            }
         </script>
     </head>
-    <body onload="startup()" onmouseup="mup(event)" onmousemove="mmove(event)">
+    <body onload="startup()" onmouseup="mup(event);scrollup()" onmousemove="mmove(event);scrollmove(event)">
         <div id="controls">
             <span id="image"><br></span><button style="float: right" onclick="toggleHelp()">?</button><br>
             <span id="atlas"></span>
             <hr>
             Bucket:
-            <button onclick="save()">Save</button><button onclick="saveas()" id="saveas">Save as...</button><button onclick="exprt()">Export overlays</button>
+            <button onclick="save()">Save</button><button onclick="saveas()" id="btn_saveas">Save as...</button><button id="btn_export" onclick="exprt()">Export overlays</button>
             <div class="ctrlrow">
-                <select id="modality" oninput="drawimage();drawstrip();drawnavi();" disabled>
+                <select id="modality" oninput="changemodality(event)" disabled>
                     <option>Segmentation</option>
                     <option>Template</option>
                 </select>
@@ -1735,6 +1762,8 @@ and open the template in the editor.
                     Filmstrip
                     <input id="stripalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawstrip()">
                     <input id="stripoutline" type="color" value="#0000FF" oninput="drawstrip()">
+                    <span id="contrast_head">Contrast</span>
+                    <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">
             </div>
 <!--            <div class="ctrlrow">
                 Overlay:
@@ -1753,7 +1782,7 @@ and open the template in the editor.
             </div>
             <hr>-->
             <!--<button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>-->
-            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button><button onclick="ouv_pin()">Approve</button>
+            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button><button onclick="ouv_pin()">Approve</button><button onclick="ouv_center()">Center</button>
             <hr>
             <!--<select id="mode" oninput="angles()">-->
             <select id="mode" oninput="changemode()">
@@ -1792,7 +1821,7 @@ and open the template in the editor.
         <div id="vsiz" onmousedown="vresize(event)"></div>
         <div id="filmstrip">
             <!--<canvas id="filmcnv" onclick="strippick(event)" onwheel="stripscroll(event)"></canvas>-->
-            <canvas id="scrlcnv" onmousedown="scrolldown(event)" onmousemove="scrollmove(event)" onmouseup="scrollup(event)"></canvas>
+            <canvas id="scrlcnv" onmousedown="scrolldown(event)"></canvas>
             <canvas id="filmcnv" onmousedown="stripdown(event)" onmousemove="stripmove(event)" onmouseup="stripup(event)" onwheel="stripscroll(event)"></canvas>
         </div>
         <div id="cover">        </div>
