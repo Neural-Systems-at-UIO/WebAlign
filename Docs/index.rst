@@ -7,7 +7,9 @@ WebAlign: Web application for 2D image registration to 3D atlas
 
    Introduction
    installation
+   Acknowledgements
    support
+   FAQ
    
   
  
@@ -24,7 +26,7 @@ WebAlign: Web application for 2D image registration to 3D atlas
    
    start
    align
-   FAQ
+
    
    
    
