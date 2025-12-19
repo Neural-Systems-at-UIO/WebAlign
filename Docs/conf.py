@@ -1,4 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
+align# Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
@@ -57,7 +57,7 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-html_logo = "Logos_BlackWhite_WA_slices.png"
+html_logo = "Logos_BlackWhite_WebAlign_slices.png"
 html_theme_options = {
     'logo_only': True,
     'display_version': False
