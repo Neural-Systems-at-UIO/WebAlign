@@ -10,9 +10,9 @@ The linear registration obtained with WebAlign can be refined with the WebWarp t
 These online registration tools can be accessed through our integrated workflows with an EBRAINs account:  the QUINT online workflow, accessible here: `https://quint-online.apps.ebrains.eu/`, or the LocaliView workflow: `https://localiview.apps.ebrains.eu/`.
 
 
+
 .. image:: images/WA_GUI.png
-   :width: 8.3in
-   :height: 4.04916in 
+
 
 Dataset DOI: 10.25493/G6CQ-D4D
 
