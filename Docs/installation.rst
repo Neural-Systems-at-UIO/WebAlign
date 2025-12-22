@@ -27,6 +27,6 @@ Source code: MIT License.
 
 WebAlign can be accessed through our integrated workflows with an EBRAINs account:
 
-1. the QUINT online workflow, accessible here: `https://quint-online.apps.ebrains.eu/`, more information about the QUINT online workflow can be found here: `https://quint-webtools.readthedocs.io/en/latest/index.html`
+1. The QUINT online workflow, accessible here: https://quint-online.apps.ebrains.eu/, more information about the QUINT online workflow can be found here: https://quint-webtools.readthedocs.io/en/latest/index.html
 
-2. the LocaliView workflow: `https://localiview.apps.ebrains.eu/`, more information about the QUINT online workflow can be found here: `https://localiview.readthedocs.io/en/latest/Introduction.html`
+2. The LocaliView workflow: https://localiview.apps.ebrains.eu/, more information about the QUINT online workflow can be found here: https://localiview.readthedocs.io/en/latest/Introduction.html
