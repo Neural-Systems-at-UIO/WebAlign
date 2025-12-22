@@ -3,15 +3,13 @@
 
 The main window shows the selected image with the atlas overlay.
 
-.. image:: images/image1.png
-   :width: 7.3in
-   :height: 4.04916in 
+.. image:: images/WA_GUI.png
 
-Dataset DOI: 10.25493/G6CQ-D4D
+Dataset DOI: 10.25493/MB6S-K0S
 
 .. note::
- If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel below)
 
+ If necessary, change the atlas from coronal view to sagittal or horizontal view (see Navigation panel)
 1. Move the atlas to the approximate position of your section using the yellow dots in the three small windows from the navigation panel.
 
 2. Start anchoring by placing a marker with the "Space bar" , it is initially a cross, and it is the fix point of (most) transformations. The "Escape key" can be used to remove the marker.
