@@ -24,7 +24,7 @@ WebAlign: Web application for 2D image registration to 3D atlas
    :numbered:
    :maxdepth: 3
    
-   start
+
    align
 
    
