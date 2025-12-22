@@ -7,7 +7,8 @@ WebAlign is an online tool for spatial registration of histological section imag
 Different experimental datasets registered to the same reference atlas allows you to spatially integrate, analyse and navigate these datasets within a standardised coordinate system.
 The linear registration obtained with WebAlign can be refined with the WebWarp tool (https://webwarp.readthedocs.io/en/latest/).
 
-These online registration tools can be accessed through our integrated workflows with an EBRAINs account:  the QUINT online workflow, accessible here: `https://quint-online.apps.ebrains.eu/`, or the LocaliView workflow: `https://localiview.apps.ebrains.eu/`.
+These online registration tools can be accessed through our integrated workflows with an EBRAINs account:  the QUINT online workflow, accessible here: https://quint-online.apps.ebrains.eu/, or the LocaliView workflow: https://localiview.apps.ebrains.eu/.
+
 
 
 
