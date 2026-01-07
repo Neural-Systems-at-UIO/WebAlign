@@ -5,7 +5,7 @@ The main window shows the selected image with the atlas overlay.
 
 .. image:: images/WA_GUI.png
 
-Dataset DOI: 10.25493/MB6S-K0S
+**Data from**: Laja et al. (2025). Distribution of parvalbumin-positive interneurons in the normal adult rat brain (v2) [Data set]. EBRAINS. https://doi.org/10.25493/MB6S-K0S
 
 .. note::
 
