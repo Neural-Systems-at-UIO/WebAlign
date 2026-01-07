@@ -15,7 +15,6 @@ WebAlign: Web application for 2D image registration to 3D atlas
    
 .. toctree::
    :caption: Operations
-   :numbered:
    :maxdepth: 3
    
    registration
