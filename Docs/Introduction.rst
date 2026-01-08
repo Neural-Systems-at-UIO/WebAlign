@@ -25,4 +25,4 @@ Data from: Laja et al. (2025). Distribution of parvalbumin-positive interneurons
 **What is the output of WebAlign?**
 ---------------------------------
 
--A registration file (JSON format) containing the coordinates of your regisered section images in atlas space. This file is then used in the workflows automatically.
+-A registration file (JSON format) containing the coordinates of your registered section images in atlas space. This file is then used in the workflows automatically.
