@@ -25,6 +25,9 @@ and open the template in the editor.
             div{
                 position: absolute;
             }
+            #bucket{
+                position: static;
+            }
             #controls{
                 /*background: red;*/
                 background: white;
@@ -41,7 +44,7 @@ and open the template in the editor.
                 background: grey;
             }
             #navi{
-                background: green;
+                background: white /*green*/;
                 overflow: hidden;
             }
             #vsiz{
@@ -91,6 +94,8 @@ and open the template in the editor.
                 padding:0;
                 /*background: red;*/
                 display:flex;
+                border-bottom: 5px solid transparent;
+                border-right: 5px solid transparent;
             }
             .stepgroup>button{
                 margin:0;
@@ -102,6 +107,11 @@ and open the template in the editor.
                 align-items: center;
                 margin-bottom: 5px;
                 margin-top: 5px;
+            }
+            .imgcb{
+                position: absolute;
+                top: 23px;
+                outline: 5px solid black;
             }
             /*input[type=range]{*/
             /*width:100px;*/
@@ -125,6 +135,28 @@ and open the template in the editor.
             #contrast,#contrast_head{
                 visibility: hidden;
             }
+            #rot1{
+                background: #E6B4B4;
+            }
+            #rot2{
+                background: #B4E6B4;
+            }
+            #rot3{
+                background: #B4B4E6;
+            }
+            #maingroup{
+                border-color: #B4B4E6;
+                background: #B4B4E6;
+            }
+            #group1{
+                border-color: #E6B4B4;
+            }
+            #group2{
+                border-color: #B4E6B4;
+            }
+            .markermode{
+                background: yellow;
+            }
         </style>
         <script src="slicer.js"></script>
         <script src="math.js"></script>
@@ -138,6 +170,7 @@ and open the template in the editor.
         <script src="zoomer.js"></script>
         <script>
             let args = JSON.parse(decodeURIComponent(location.search.substring(1)));
+            //args.embedded = true;
             const bucket = args["clb-collab-id"];
             const token = args.token;
             let filename = args.filename;
@@ -156,9 +189,10 @@ and open the template in the editor.
             let gray;
             async function startup() {
                 let start = Date.now();
-                if (args.embedded){
-                    document.getElementById("btn_saveas").style.display = "none";
-                    document.getElementById("btn_export").style.display = "none";
+                if (args.embedded) {
+//                    document.getElementById("btn_saveas").style.display = "none";
+//                    document.getElementById("btn_export").style.display = "none";
+                    document.getElementById("bucket").style.display = "none";
                 }
                 popup("Loading data");
                 window.addEventListener("resize", resize);
@@ -167,6 +201,29 @@ and open the template in the editor.
                 series = await fetch(url.includes("?") ? url : url + "?" + Date.now()).then(response => response.json());
                 if (series.hasOwnProperty("mode"))
                     document.getElementById("mode").selectedIndex = series.mode;
+
+                if (!series.hasOwnProperty("settings"))
+                    series.settings = {};
+                const settings = series.settings;
+                if (settings.hasOwnProperty("overlay")) {
+                    const overlay = settings.overlay;
+                    const alpha = overlay.alpha;
+                    document.getElementById("mainalpha").value = alpha;
+                    const outline = document.getElementById("mainoutline");
+                    outline.value = overlay.color;
+                    outline.disabled = alpha !== 100;
+                } else
+                    settings.overlay = {};
+                if (settings.hasOwnProperty("filmstrip")) {
+                    const filmstrip = settings.filmstrip;
+                    const alpha = filmstrip.alpha;
+                    document.getElementById("stripalpha").value = alpha;
+                    const outline = document.getElementById("stripoutline");
+                    outline.value = filmstrip.color;
+                    outline.disabled = alpha !== 100;
+                } else
+                    settings.filmstrip = {};
+
                 console.log(Date.now() - start, "Got series");
                 /*let*/ atlas = new Promise(resolve => new Worker("getlas.js?" + series.atlas)
                             .onmessage = event => {
@@ -234,10 +291,17 @@ and open the template in the editor.
                 document.getElementById("atlas").innerText = atlas.name;
 
                 for (let image of images) {
-                    if (image.hasOwnProperty("ouv"))
+                    if (image.hasOwnProperty("ouv")) {
                         image.anchored = true;
+                        //image.approved = true;
+                    }
                     if (!image.hasOwnProperty("snr"))
                         image.snr = parseInt(image.filename.match(/_s(\d+)/)[1]);
+                    const cb = image.cb = document.createElement("input");
+                    cb.type = "checkbox";
+                    cb.className = "imgcb";
+                    cb.addEventListener("input", () => cbchange(image));
+                    document.getElementById("filmstrip").appendChild(cb);
                 }
 //                propagate();
 
@@ -254,6 +318,41 @@ and open the template in the editor.
                 resize();
                 console.log(images);
                 cover();
+            }
+            function cbchange(image) {
+                if(image.wadone) {
+                    image.wadone = false;
+                    ouv_clear();
+                    propagate();
+                } else {
+                    image.wadone = true;
+                    if(!image.anchored) {
+                        image.ouv = ouv.slice();
+                        image.anchored = true;
+                        propagate();
+                    }
+                }
+                if(args.embedded)
+                    dosave();
+//                image.approved = !image.approved;
+//                image.anchored = !image.anchored;
+//                if(image === active_image) {
+//                    if(image.anchored)
+//                        image.ouv = ouv.slice();
+//                }
+////                store_undo(true);
+////                ouv=active_image.ouv.slice();
+//                propagate();
+//                if(image === active_image) {
+//                    if(!image.anchored)
+//                        ouv = image.ouv.slice();
+//                }
+                dispatchAll();
+//                updateangles();
+//                drawimage();
+//                drawnavi();
+//                drawstrip();
+//                updateaux();
             }
             let ctrlw = 300;
             let fstrip = 128+15;
@@ -305,8 +404,9 @@ and open the template in the editor.
                 drawX("maincnv");
                 drawX("navicnv");
                 drawX("filmcnv");
-                drawstrip();
-                imagenavi();
+                dispatchAll();
+//                drawstrip();
+//                imagenavi();
 //                drawimage();
 //                drawnavi();
             }
@@ -373,12 +473,19 @@ and open the template in the editor.
                 for (const image of images)
                     if (image.fsx - strippos >= -image.fsw && image.fsx - strippos <= width) {
                         if (image === current) {
-                            ctx.fillStyle = "orange";
-                            ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
+                            ctx.fillStyle = "black";
+                            ctx.fillRect(image.fsx - strippos - 15, 0, image.fsw + 30, 128);
+//                            ctx.fillStyle = "orange";
+//                            ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
+//                            ctx.fillStyle = "black";
+                        }
+                        if (image.anchored && image.wadone) {
+                            ctx.fillStyle = "green";
+                            ctx.fillRect(image.fsx - strippos - 5, 0, image.fsw + 10, 128);
                             ctx.fillStyle = "black";
                         }
-                        if (image.anchored) {
-                            ctx.fillStyle = "green";
+                        if (image.anchored && !image.wadone) {
+                            ctx.fillStyle = "hotpink";
                             ctx.fillRect(image.fsx - strippos - 5, 0, image.fsw + 10, 128);
                             ctx.fillStyle = "black";
                         }
@@ -444,7 +551,31 @@ and open the template in the editor.
                                         });
                             }
                         }
+
+// drawn, bw checkbox                        
+//                        ctx.save();
+//                        ctx.lineWidth = 1;
+//                        ctx.strokeStyle = "black";
+//                        ctx.fillStyle = "white";
+//                        ctx.translate(image.fsx - strippos + 5, image.fsy + 5);
+//                        ctx.fillRect(0, 0, 12, 12);
+//                        ctx.strokeRect(0, 0, 12, 12);
+//                        if(image.anchored) {
+//                            ctx.lineWidth = 3;
+//                            ctx.beginPath();
+//                            ctx.moveTo(10, 2);
+//                            ctx.lineTo(6, 9);
+//                            ctx.lineTo(2, 6);
+//                            ctx.stroke();
+//                        }
+//                        ctx.restore();
+                        
                     }
+                for(const image of images) {
+                    image.cb.disabled = image !== active_image;
+                    image.cb.checked = image.wadone;
+                    image.cb.style.left = (image.fsx - strippos - 5) + "px";
+                }
             }
             
             let scrollpick = false;
@@ -469,7 +600,7 @@ and open the template in the editor.
             }
             function stripscroll(event) {
                 event.preventDefault();
-                strippos -= event.deltaY;
+                strippos += event.deltaY;
                 drawstrip();
             }
             let strippick = false;
@@ -581,9 +712,10 @@ and open the template in the editor.
 
                 init_zoomer();
 
-                imagenavi();
+                dispatchAll();
+//                imagenavi();
 //                drawimage();
-                drawstrip();
+//                drawstrip();
 //                drawnavi();
 //                drawcut();
                 init_undo();
@@ -632,7 +764,7 @@ and open the template in the editor.
                             ctx.strokeStyle = "black";
                             ctx.lineWidth = 2;
                             ctx.beginPath();
-                            switch (marker.type) {
+                            switch (markermode) {
                                 case "cross":
                                     ctx.moveTo(x + w * marker.x - 10, y + h * marker.y);
                                     ctx.lineTo(x + w * marker.x + 10, y + h * marker.y);
@@ -726,7 +858,16 @@ and open the template in the editor.
                 document.getElementById("undo").disabled = document.getElementById("redo").disabled = true;
             }
             function store_undo(clearing) {
+//                if(typeof clearingOrSpecial === "object") {
+//                    undo_pos++;
+//                    undo_stack.push(clearingOrSpecial);
+//                    document.getElementById("undo").disabled = false;
+//                    document.getElementById("redo").disabled = true;
+//                    // todo at caller site: everything else - clear ww_done, propagate, redraw
+//                    return;
+//                }
                 active_image.anchored = !clearing;
+                active_image.wadone = false;
                 active_image.ouv = ouv.slice();
                 undo_pos++;
                 undo_stack.splice(undo_pos);
@@ -747,20 +888,21 @@ and open the template in the editor.
 //                    idx++;
 //                }
 // Clearing nonlinear "done" markerings from altered sections
-                delete series.sections[stripidx].wwdone;
+//                delete series.sections[stripidx].wwdone;
+                delete active_image.wwdone;
                 let idx = stripidx - 1;
                 while (idx >= 0 && !images[idx].anchored) {
-                    delete series.sections[idx].wwdone;
+                    delete /*series.sections*/images[idx].wwdone;
                     idx--;
                 }
                 idx = stripidx + 1;
                 while (idx < images.length && !images[idx].anchored) {
-                    delete series.sections[idx].wwdone;
+                    delete /*series.sections*/images[idx].wwdone;
                     idx++;
                 }
 
                 propagate();
-                drawstrip();
+                drawstrip(); //!!
                 updateaux();
             }
             function apply_xdo() {
@@ -778,9 +920,10 @@ and open the template in the editor.
                 if (!item)
                     ouv = active_image.ouv.slice();
 
-                imagenavi();
-                drawstrip();
-                updateaux();
+                dispatchAll();
+//                imagenavi();
+//                drawstrip();
+//                updateaux();
             }
             function undo() {
                 undo_pos--;
@@ -794,8 +937,11 @@ and open the template in the editor.
                 if (!ready)
                     return;
                 store_undo(true);
+                if(args.embedded)
+                    dosave();
                 ouv=active_image.ouv.slice();
-                imagenavi();
+                dispatchAll();
+                //imagenavi();
 
 //                switch (document.getElementById("mode").selectedIndex) {
 //                    case 0:
@@ -818,11 +964,11 @@ and open the template in the editor.
 ////                drawimage();
 ////                drawnavi();
             }
-            function ouv_pin() {
-                if (!ready)
-                    return;
-                store_undo(false);
-            }
+//            function ouv_pin() {
+//                if (!ready)
+//                    return;
+//                store_undo(false);
+//            }
             function ouv_center() {
                 store_undo(false);
                 ouv = [
@@ -837,11 +983,13 @@ and open the template in the editor.
                             atlas.xdim, 0, 0]
                 ][document.getElementById("mode").selectedIndex];
                 active_image.ouv=ouv.slice();
-                drawimage();drawstrip();drawnavi();updateaux();
+                dispatchAll();
+                //drawimage();drawstrip();drawnavi();updateaux();
             }
 
             let mainimg = false;
             let marker = false;
+            let markermode = "cross";
             let slice = false;
             function drawimage() {
                 if (!zoomer)
@@ -1022,9 +1170,9 @@ and open the template in the editor.
                 ctx.fill();
             }
 
-            function drawcut() {
-
-            }
+//            function drawcut() {
+//
+//            }
 
             let storeclick = false;
 
@@ -1037,7 +1185,8 @@ and open the template in the editor.
                         store_undo();
                     drag_ouv = false;
                     if (marker) {
-                        marker.type = "cross";
+                        markermode = "cross";
+                        markerhelper();
                         drawimage();
                     }
                 }
@@ -1091,20 +1240,31 @@ and open the template in the editor.
             }
             function maindown(event) {
                 event.preventDefault();
-                if (!marker || event.code === "Space")
-                    marker = {type: "cross",
-                        x: (mainx - mainimg.x) / mainimg.w,
-                        y: (mainy - mainimg.y) / mainimg.h};
-                if (event.code === "Escape" || event.code === "Delete" || event.code === "Backspace")
-                    marker = false;
-                if (event.code === "Space")
-                    marker.type = "cross";
-                if (event.code === "ArrowUp" || event.code === "ArrowDown")
-                    marker.type = "vscale";
-                if (event.code === "ArrowLeft" || event.code === "ArrowRight")
-                    marker.type = "hscale";
-                if (event.code === "PageUp" || event.code === "PageDown")
-                    marker.type = "rotate";
+                switch(event.code){
+                    case "Space":
+                        marker = {x: (mainx - mainimg.x) / mainimg.w,
+                                  y: (mainy - mainimg.y) / mainimg.h};
+                        break;
+                    case "Escape":
+                    case "Delete":
+                    case "Backspace":
+                        marker = false;
+                        markermode = "cross";
+                        break;
+                    case "ArrowUp":
+                    case "ArrowDown":
+                        markermode = "vscale";
+                        break;
+                    case "ArrowLeft":
+                    case "ArrowRight":
+                        markermode = "hscale";
+                        break;
+                    case "PageUp":
+                    case "PageDown":
+                        markermode = "rotate";
+                        break;
+                }
+                markerhelper();
                 drawimage();
             }
             function mmove(event) {
@@ -1154,13 +1314,13 @@ and open the template in the editor.
                         recomp(ouv);
                         break;
                     case "mdrag":
-                        if (!marker || marker.type === "cross") {
+                        if (!marker || markermode === "cross") {
                             for (let i = 0; i < 3; i++) {
                                 ouv[i] += ouv[i + 3] * (drag.x - event.offsetX) / mainimg.w;
                                 ouv[i] += ouv[i + 6] * (drag.y - event.offsetY) / mainimg.h;
                             }
                         } else {
-                            switch (marker.type) {
+                            switch (markermode) {
                                 case "vscale":
                                     let vfactor = ((drag.y - mainimg.y) - mainimg.h * marker.y) / ((event.offsetY - mainimg.y) - mainimg.h * marker.y);
                                     for (let i = 0; i < 3; i++) {
@@ -1212,9 +1372,11 @@ and open the template in the editor.
                         }
                         break;
                 }
-                imagenavi();
-//                drawnavi();
-//                drawimage();
+//                dispatchAll();
+//                imagenavi();
+                updateangles();
+                drawnavi();
+                drawimage();
                 drag.x = event.offsetX;
                 drag.y = event.offsetY;
             }
@@ -1363,12 +1525,29 @@ and open the template in the editor.
                 dosave();
             }
             async function dosave() {
+                const settings = series.settings;
+                const overlay = settings.overlay;
+                overlay.color = document.getElementById("mainoutline").value;
+                overlay.alpha = document.getElementById("mainalpha").valueAsNumber;
+                const filmstrip = settings.filmstrip;
+                filmstrip.color = document.getElementById("stripoutline").value;
+                filmstrip.alpha = document.getElementById("stripalpha").valueAsNumber;
+
                 for (let i = 0; i < images.length; i++) {
                     let image = images[i];
                     if (image.anchored)
+//                    if (image.approved)
                         series.sections[i].ouv = image.ouv;
                     else
                         delete series.sections[i].ouv;
+                    if (image.wadone)
+                        series.sections[i].wadone = true;
+                    else
+                        delete series.sections[i].wadone;
+                    if (image.wwdone)
+                        series.sections[i].wwdone = true;
+                    else
+                        delete series.sections[i].wwdone;
                 }
                 let upload = await fetch(
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${filename}`, {
@@ -1510,25 +1689,30 @@ and open the template in the editor.
                 });
                 cover();
             }
-            function imagenavi() {
-                drawimage();
-                drawnavi();
-                angles();
-            }
+//            function imagenavi() {
+//                drawimage();
+//                drawnavi();
+//                updateangles();
+//            }
             function changemode() {
                 if (!ready) //??
                     return;
+                const mode = document.getElementById("mode").selectedIndex;
+                document.getElementById("group1").style.borderColor = ["#E6B4B4","transparent","#B4E6B4"][mode];
+                document.getElementById("group2").style.borderColor = ["#B4E6B4","#B4E6B4","transparent"][mode];
+                document.getElementById("group3").style.borderColor = ["transparent","#E6B4B4","#E6B4B4"][mode];
                 if(images.every(image=>!image.anchored)){
                     propagate();
                     ouv = active_image.ouv.slice();
-                    drawimage();
-                    drawnavi();
-                    drawstrip();
+//                    drawimage();
+//                    drawnavi();
+//                    drawstrip();
                 }
-                updateaux();
-                angles();
+                dispatchAll();
+//                updateaux();
+//                updateangles();
             }
-            function angles() {
+            function updateangles() {
                 if (!ready)
                     return;
                 series.mode = document.getElementById("mode").selectedIndex;
@@ -1574,7 +1758,9 @@ and open the template in the editor.
                 if([rot1,rot2,rot3].some(x=>isNaN(x)))
                     return;
                 fromrot123uv(ouv, [rot1, rot2, rot3, len3(ouv, 3), len3(ouv, 6)], document.getElementById("mode").selectedIndex);
-                imagenavi();
+                propagate();
+                dispatchAll();
+                //imagenavi();
             }
             function fromrot123uv(ouv, rot123uv, mode) {
                 let [rot1, rot2, rot3, u, v] = rot123uv;
@@ -1609,22 +1795,37 @@ and open the template in the editor.
                 }
             }
             function unify() {
+//                const undo_item = {
+//                    action: "unify",
+//                    images: images.map((image, idx) => ({
+//                        wwdone: series.sections[stripidx].wwdone,
+//                        ouv: image.ouv.slice(),
+//                        anchored: image.anchored,
+//                        approved: image.approved
+//                    }))
+//                };
+//                store_undo(undo_item);
+                
                 let mode = document.getElementById("mode").selectedIndex;
                 let [rot1, rot2] = rot123uvfrom(ouv, mode);
                 for (let image of images) {
+                    image.wadone = false;
+                    delete image.wwdone;
                     let rot123uv = rot123uvfrom(image.ouv, mode);
                     rot123uv[0] = rot1;
                     rot123uv[1] = rot2;
                     fromrot123uv(image.ouv, rot123uv, mode);
                 }
-                drawstrip();
-                updateaux();
+                dispatchAll();
+//                drawstrip();
+//                updateaux();
             }
 
             function clickstep(coord, dir) {
                 storeclick = true;
                 ouv[coord] += document.getElementById("panstep").valueAsNumber * dir;
-                imagenavi();
+                dispatchAll();
+//                imagenavi();
             }
             function clickrot(c1, c2, dir) {
                 storeclick = true;
@@ -1634,7 +1835,8 @@ and open the template in the editor.
                 rot(ouv, 3 + c1, 3 + c2, sincos);
                 rot(ouv, 6 + c1, 6 + c2, sincos);
                 recomp(ouv);
-                imagenavi();
+                dispatchAll();
+//                imagenavi();
             }
             function mainstep(x, y) {
                 storeclick = true;
@@ -1645,7 +1847,8 @@ and open the template in the editor.
                     ouv[i] += ouv[i + 6] * step * y;
                 }
                 recomp(ouv);
-                imagenavi();
+                dispatchAll();
+//                imagenavi();
             }
             function mainrot(dir) {
                 storeclick = true;
@@ -1659,7 +1862,8 @@ and open the template in the editor.
                     ouv[i + 6] = u[i] * sincos[0] + v[i] * sincos[1];
                 }
                 recomp(ouv);
-                imagenavi();
+                dispatchAll();
+//                imagenavi();
             }
             function toggleHelp() {
                 const help = document.getElementById("help");
@@ -1719,7 +1923,8 @@ and open the template in the editor.
                     height:section.height,
                     snr:section.snr,
                     ouv:section.ouv,
-                    anchored:section.anchored
+                    anchored:section.anchored,
+                    approved:section.wadone
                 }))});
             }
             
@@ -1736,7 +1941,29 @@ and open the template in the editor.
                 const visibility=["hidden","visible"][event.target.selectedIndex];
                 document.getElementById("contrast").style.visibility=visibility;
                 document.getElementById("contrast_head").style.visibility=visibility;
-                drawimage();drawstrip();drawnavi();
+                dispatchAll();
+//                drawimage();drawstrip();drawnavi();
+            }
+            
+            function dispatchAll() {
+                updateangles();
+                updateaux();
+                drawimage();
+                drawnavi();
+                drawstrip();
+            }
+            
+            function markerhelper(event){
+                if(event){
+                    if(event.target.id==="btn_"+markermode)
+                        markermode="cross";
+                    else
+                        markermode=event.target.id.substr(4);
+                    drawimage();
+                }
+                document.getElementsByClassName("markermode")[0]?.classList.remove("markermode");
+                if(markermode!=="cross")
+                    document.getElementById("btn_"+markermode).classList.add("markermode");
             }
         </script>
     </head>
@@ -1745,15 +1972,15 @@ and open the template in the editor.
             <span id="image"><br></span><button style="float: right" onclick="toggleHelp()">?</button><br>
             <span id="atlas"></span>
             <hr>
-            Bucket:
-            <button onclick="save()">Save</button><button onclick="saveas()" id="btn_saveas">Save as...</button><button id="btn_export" onclick="exprt()">Export overlays</button>
+            <div id="bucket">Bucket:
+            <button onclick="save()">Save</button><button onclick="saveas()" id="btn_saveas">Save as...</button><button id="btn_export" onclick="exprt()">Export overlays</button></div>
             <div class="ctrlrow">
                 <select id="modality" oninput="changemodality(event)" disabled>
                     <option>Segmentation</option>
                     <option>Template</option>
                 </select>
                 &#x2194;&#x2195;<input id="panstep" type="number" min="0" max="20" step="0.1" value="1">
-                <!--1f504-->&#x21BA;<input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">
+                <!--1f504-->&#x2B6E;<input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">
             </div>
             <div style="position: static; display: grid; grid-template-columns: auto auto auto;">
                     Overlay
@@ -1763,7 +1990,8 @@ and open the template in the editor.
                     <input id="stripalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawstrip()">
                     <input id="stripoutline" type="color" value="#0000FF" oninput="drawstrip()">
                     <span id="contrast_head">Contrast</span>
-                    <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">
+                    <!--<input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">-->
+                    <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="dispatchAll()">
             </div>
 <!--            <div class="ctrlrow">
                 Overlay:
@@ -1782,7 +2010,9 @@ and open the template in the editor.
             </div>
             <hr>-->
             <!--<button onclick="store()">Store</button><button onclick="restore()">Restore</button><button onclick="ouv_clear()">Clear</button>-->
-            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button><button onclick="ouv_pin()">Approve</button><button onclick="ouv_center()">Center</button>
+            <!--<button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button><button onclick="ouv_clear()">Clear</button><button onclick="ouv_pin()">Approve</button><button onclick="ouv_center()">Center</button>-->
+            <button id="undo" onclick="undo()">Undo</button><button id="redo" onclick="redo()">Redo</button>
+            <button onclick="ouv_clear()">Clear</button><button onclick="ouv_center()">Center</button>
             <hr>
             <!--<select id="mode" oninput="angles()">-->
             <select id="mode" oninput="changemode()">
@@ -1799,20 +2029,24 @@ and open the template in the editor.
         </div>
         <div id="hsiz" class="hsep" onmousedown="hresize(event)"></div>
         <div id="main">
-            <div class="stepgroup">
+            <div class="stepgroup" id="maingroup">
                 <button onclick="mainstep(1, 0)">&#x25c0;</button>
                 <button onclick="mainstep(-1, 0)">&#x25b6;</button>
                 <button onclick="mainstep(0, 1)">&#x25b2;</button>
                 <button onclick="mainstep(0, -1)">&#x25bc;</button>
                 <button onclick="mainrot(-1)">&#x21b6;</button>
                 <button onclick="mainrot(1)">&#x21b7;</button>
+                &nbsp;
+                <button id="btn_hscale" onclick="markerhelper(event)">&#x2194;</button>
+                <button id="btn_vscale" onclick="markerhelper(event)">&#x2195;</button>
+                <button id="btn_rotate" onclick="markerhelper(event)">&#x2B6E;</button>
             </div>
-            <canvas id="maincnv" tabindex="1"
+            <canvas id="maincnv" tabindex="1" style="outline:none"
                     onmousedown="maindrag(event)"
                     onmousemove="mainmove(event)"
                     onkeydown="maindown(event)"
-                    onmouseover="/*event.target.focus()*/"
-                    onmouseout="/*event.target.blur();*/mainmove(event)"></canvas>
+                    onmouseover="event.target.focus()"
+                    onmouseout="event.target.blur();mainmove(event)"></canvas>
         </div>
         <div id="hsep" class="hsep"></div>
         <div id="navi">
