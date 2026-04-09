@@ -6,7 +6,7 @@ A key feature of the tool is its ability to generate user defined cut planes thr
 
 # Access
 
-Through the QUINT Online service: https://rodentworkbench.apps.ebrains.eu/
+Through the QUINT Online service: [https://quint-online.apps.ebrains.eu/]
 
 # Latest stable version
 v0.7
