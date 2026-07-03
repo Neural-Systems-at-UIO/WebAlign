@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this template
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+            async function start(){
+                log.innerText="";
+                for(const name of await caches.keys()){
+                    log.innerHTML+=`<button onclick="deleteCache('${name}')">${name}</button><br>`;
+                    const cache=await caches.open(name);
+                    for(const key of await cache.keys())
+                        log.innerHTML+=`<button onclick="deleteItem('${name}','${key.url}')">${key.url}</button><br>`;
+                    log.innerHTML+="<br>";
+                }
+            }
+            async function deleteCache(name){
+                await caches.delete(name);
+                start();
+            }
+            async function deleteItem(name,item) {
+                const cache=await caches.open(name);
+                await cache.delete(item);
+                start();
+            }
+        </script>
+    </head>
+    <body onload="start()">
+        <pre id="log"></pre>
+    </body>
+</html>

@@ -238,47 +238,62 @@ $json["token"]=$token;
             // https://localizoom.apps.hbp.eu/filmstripzoom.html?atlas=ABA_Mouse_CCFv3_2017_25um&series=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000018_CalbindinDistr-NormalMouse_pub/Mouse3/mouse3_nonlinear_lz.json&pyramids=imgsvc-be74b890-2c14-4404-b187-678ab8cacc9e&tools&nl
             let oldisv;
             async function import_link(event) {
+                debugger;
                 clear();
-                const link=event.target.value;
-                if(!link.startsWith("https://localizoom.apps.hbp.eu/filmstripzoom.html?"))
+                const link = event.target.value;
+                const lzprefix = "https://localizoom.apps.ebrains.eu/filmstripzoom.html?";
+                if(!link.startsWith(lzprefix)){
+                    alert("EBRAINS LocaliZoom links are expected.");
                     return;
-                const params=link.split("?")[1].split("&").reduce((acc,item)=>{
-                    const pair=item.split("=");
-                    acc.set(pair[0],pair.length===1?true:pair[1]);
-                    return acc;
-                },new Map());
-                
-                if(params.get("pyramids").startsWith("buckets/")){
-                    bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
-                }else{
-                    bucket=false;
-                    document.getElementById("collab").value="---";
-                    oldisv=params.get("pyramids");
+                }
+                const dpprefix = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+                const dataproxy = fragment => dpprefix + fragment;
+                const complete = candidate => candidate.startsWith("https://") ? candidate : dataproxy(candidate);
+
+                const params = new URLSearchParams(new URL(link).search);
+                const trf = params.has("transform") ?
+                    params.get("transform").split(",").map(t => t.includes("=") ? t.split("=") : [t, ""]) :
+                    [];
+                if(params.get("pyramids")?.startsWith(dpprefix))
+                    params.set("pyramids",params.get("pyramids").substring(dpprefix.length));
+                if(params.get("dziproot")?.startsWith(dpprefix))
+                    params.set("dziproot",params.get("dziproot").substring(dpprefix.length));
+
+                const atlas = params.get("atlas");
+                const pyramids = params.get("pyramids");
+                if(pyramids?.startsWith("https://" || pyramids?.includes("/"))){
+                    alert(pyramids + " ?!\nNot supported now.");
+                    return;
+                }
+                const dziproot = params.get("dziproot");
+                if(dziproot?.startsWith("https://")){
+                    alert(dziproot + " ?!\nNot supported now.");
+                    return;
                 }
                 
-                const select=document.getElementById("atlas");
-                atlas.selectedIndex=-1;
-                for(let i=0;i<atlas.options.length;i++)
-                    if(atlas.options[i].value===params.get("atlas"))
-                        atlas.selectedIndex=i;
+                const bucket = pyramids || dziproot.match(/[^\/]*/)[0];
                 
-//                bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
-                const series=await fetch(params.get("series")).then(response=>response.json());
-                collection=await Promise.all(series.slices.map(async slice=>{
-                    const filename=slice.filename;
-                    const name=filename.substring(0,filename.lastIndexOf("."))
-                    let dzi,section;
-                    try {
-                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
-                            `${bucket?bucket:oldisv}/${filename}/${name}.dzi`)
-                            .then(response=>response.text());
-                        section=dzisection(dzi,filename);
-                    } catch(ex) {
-                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
-                            `${bucket?bucket:oldisv}/${name}.tif/${name}.dzi`)
-                            .then(response=>response.text());
-                        section=dzisection(dzi,name+".tif");
-                    }
+                const org = await fetch(complete(params.get("series"))).then(response => response.json());
+                const sections = await Promise.all(org.slices.map(async slice => {
+                    let filename = slice.filename;
+                    for(const t of trf)
+                        filename = filename.replace(t[0], t[1]);
+                    const dzi = pyramids
+                    ? await fetch(complete(bucket + "/" + filename + "/" + filename.substring(0, filename.lastIndexOf(".")) + ".dzi"))
+                                .then(response => response.text())
+//                        for(const [_,entry] of zipdir.entries) {
+//                            if(entry.name.endsWith(".dzi")) {
+//                                const data=await zipdir.get(entry);
+//                                if(current!==ctime)return;
+//                                const dzi=new TextDecoder().decode(data);
+//                                collection.push(dzisection(dzi,dzip));
+//                                break;
+//                            }
+//                        }
+                    : await netunzip(complete(dziproot + filename))
+                            .then(zip => zip.get(zip.entries.get(filename.replace(".dzip",".dzi"))))
+                            .then(data => new TextDecoder().decode(data));
+                    const section = dzisection(dzi, filename);
                     if(slice.hasOwnProperty("anchoring"))
                         section.ouv=slice.anchoring;
                     if(slice.hasOwnProperty("markers"))
@@ -290,7 +305,79 @@ $json["token"]=$token;
                         }));
                     return section;
                 }));
-                tryshow();
+                
+                const series = {atlas, bucket, sections};
+                if(dziproot)
+                    series.dziproot = dziproot.substring(bucket.length + 1);
+                
+                const upload=await fetch(
+                        `https://data-proxy.ebrains.eu/api/v1/buckets/${state["clb-collab-id"]}/${state.filename}`,{
+                            method: "PUT",
+                            headers:{
+                                accept:"application/json",
+                                authorization:`Bearer ${state.token}`
+                            }
+                        }
+                    ).then(response=>response.json());
+                if (!upload.hasOwnProperty("url")) {
+                    document.getElementById("log").innerHTML=("Possible error happened:<br>" + JSON.stringify(upload));
+                    return;
+                }
+                await fetch(upload.url, {
+                    method: "PUT",
+                    headers: {
+                        'Content-Type': 'application/x.webalign'
+                    },
+                    body: JSON.stringify(series)
+                });
+                location.href="webalign.html?"+encodeURIComponent(JSON.stringify(state));
+                
+                return;
+/////                
+//                
+//                if(params.get("pyramids").startsWith("buckets/")){
+//                    bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
+//                }else{
+//                    bucket=false;
+//                    document.getElementById("collab").value="---";
+//                    oldisv=params.get("pyramids");
+//                }
+//                
+//                const select=document.getElementById("atlas");
+//                atlas.selectedIndex=-1;
+//                for(let i=0;i<atlas.options.length;i++)
+//                    if(atlas.options[i].value===params.get("atlas"))
+//                        atlas.selectedIndex=i;
+//                
+////                bucket=document.getElementById("collab").value=params.get("pyramids").substring("buckets/".length);
+//                const series=await fetch(params.get("series")).then(response=>response.json());
+//                collection=await Promise.all(series.slices.map(async slice=>{
+//                    const filename=slice.filename;
+//                    const name=filename.substring(0,filename.lastIndexOf("."))
+//                    let dzi,section;
+//                    try {
+//                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
+//                            `${bucket?bucket:oldisv}/${filename}/${name}.dzi`)
+//                            .then(response=>response.text());
+//                        section=dzisection(dzi,filename);
+//                    } catch(ex) {
+//                        dzi=await fetch((bucket?"https://data-proxy.ebrains.eu/api/v1/buckets/":"https://object.cscs.ch/v1/AUTH_08c08f9f119744cbbf77e216988da3eb/")+
+//                            `${bucket?bucket:oldisv}/${name}.tif/${name}.dzi`)
+//                            .then(response=>response.text());
+//                        section=dzisection(dzi,name+".tif");
+//                    }
+//                    if(slice.hasOwnProperty("anchoring"))
+//                        section.ouv=slice.anchoring;
+//                    if(slice.hasOwnProperty("markers"))
+//                        section.markers=slice.markers.map(marker=>({
+//                            x:marker[0]*section.width/slice.width,
+//                            y:marker[1]*section.height/slice.height,
+//                            nx:marker[2]*section.width/slice.width,
+//                            ny:marker[3]*section.height/slice.height
+//                        }));
+//                    return section;
+//                }));
+//                tryshow();
             }
             async function dzip(){
                 const choice=await dppick({

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this template
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+            async function refresh() {
+                document.getElementById("origin").innerText=`Origin: ${location.origin}`;
+                const names = await caches.keys();
+                if(names.length===0) {
+                    document.getElementById("table").innerText="";
+                    document.getElementById("list").innerText="No caches found.";
+                } else {
+                    document.getElementById("list").innerText="";
+                }
+            }
+        </script>
+    </head>
+    <body onload="refresh()">
+        <div id="origin"></div>
+        <div>
+            <table id="table"></table>
+        </div>
+        <div id="list"></div>
+    </body>
+</html>

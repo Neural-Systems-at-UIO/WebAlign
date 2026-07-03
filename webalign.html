@@ -22,37 +22,44 @@ and open the template in the editor.
                 background: purple;
                 padding: 0;
             }
-            div{
+/*            div{
                 position: absolute;
-            }
-            #bucket{
+            }*/
+/*            #bucket{
                 position: static;
-            }
+            }*/
             #controls{
+                position: absolute;
                 /*background: red;*/
                 background: white;
             }
             #hsiz{
+                position: absolute;
                 cursor: ew-resize;
             }
             #main{
+                position: absolute;
                 background: white;
                 overflow: hidden;
             }
             .hsep{
+                position: absolute;
                 width: 10px;
                 background: grey;
             }
             #navi{
+                position: absolute;
                 background: white /*green*/;
                 overflow: hidden;
             }
             #vsiz{
+                position: absolute;
                 height: 10px;
                 background: grey;
                 cursor: ns-resize;
             }
             #filmstrip{
+                position: absolute;
                 background: white;
                 height: calc(128px + 15px);
                 overflow: hidden;
@@ -102,7 +109,7 @@ and open the template in the editor.
                 padding:0;
             }
             .ctrlrow{
-                position: static;
+                /*position: static;*/
                 display:flex;
                 align-items: center;
                 margin-bottom: 5px;
@@ -110,8 +117,11 @@ and open the template in the editor.
             }
             .imgcb{
                 position: absolute;
-                top: 23px;
+                top: 22px;
                 outline: 5px solid black;
+            }
+            .imgcb:enabled{
+                outline: 5px solid orange;
             }
             /*input[type=range]{*/
             /*width:100px;*/
@@ -132,9 +142,9 @@ and open the template in the editor.
                 box-shadow: 0 1px 0px rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;
                 background-color: #f7f7f7;
             }
-            #contrast,#contrast_head{
+/*            #contrast,#contrast_head{
                 visibility: hidden;
-            }
+            }*/
             #rot1{
                 background: #E6B4B4;
             }
@@ -168,6 +178,7 @@ and open the template in the editor.
         <script src="https://cdn.jsdelivr.net/gh/Tevemadar/NetUnzip/netunzip.min.js"></script>
         <script src="cache.js"></script>
         <script src="zoomer.js"></script>
+        <script src="merger.js"></script>
         <script>
             let args = JSON.parse(decodeURIComponent(location.search.substring(1)));
             //args.embedded = true;
@@ -193,6 +204,7 @@ and open the template in the editor.
 //                    document.getElementById("btn_saveas").style.display = "none";
 //                    document.getElementById("btn_export").style.display = "none";
                     document.getElementById("bucket").style.display = "none";
+                    document.getElementById("load_json_button").style.display = "none";
                 }
                 popup("Loading data");
                 window.addEventListener("resize", resize);
@@ -269,7 +281,7 @@ and open the template in the editor.
                     } else {
                         image.fsh = 128;
                         image.fsy = 0;
-                        image.fsw = w * 128 / h;
+                        image.fsw = Math.round(w * 128 / h);
                     }
                     fsw += 30 + image.fsw;
 
@@ -470,14 +482,16 @@ and open the template in the editor.
                 else
                     alpha = parseInt(so.value.substring(1), 16);
 
+                const posbak = strippos;
+                strippos = Math.round(strippos);
                 for (const image of images)
                     if (image.fsx - strippos >= -image.fsw && image.fsx - strippos <= width) {
                         if (image === current) {
-                            ctx.fillStyle = "black";
+                            ctx.fillStyle = "orange";
                             ctx.fillRect(image.fsx - strippos - 15, 0, image.fsw + 30, 128);
 //                            ctx.fillStyle = "orange";
 //                            ctx.fillRect(image.fsx - strippos - 10, 0, image.fsw + 20, 128);
-//                            ctx.fillStyle = "black";
+                            ctx.fillStyle = "black";
                         }
                         if (image.anchored && image.wadone) {
                             ctx.fillStyle = "green";
@@ -574,8 +588,9 @@ and open the template in the editor.
                 for(const image of images) {
                     image.cb.disabled = image !== active_image;
                     image.cb.checked = image.wadone;
-                    image.cb.style.left = (image.fsx - strippos - 5) + "px";
+                    image.cb.style.left = (image.fsx - strippos - 4) + "px";
                 }
+                strippos = posbak;
             }
             
             let scrollpick = false;
@@ -1938,9 +1953,10 @@ and open the template in the editor.
             }
             
             function changemodality(event){
-                const visibility=["hidden","visible"][event.target.selectedIndex];
-                document.getElementById("contrast").style.visibility=visibility;
-                document.getElementById("contrast_head").style.visibility=visibility;
+//                const visibility=["hidden","visible"][event.target.selectedIndex];
+//                document.getElementById("contrast").style.visibility=visibility;
+//                document.getElementById("contrast_head").style.visibility=visibility;
+                document.getElementById("contrast").disabled = event.target.selectedIndex === 0;
                 dispatchAll();
 //                drawimage();drawstrip();drawnavi();
             }
@@ -1965,6 +1981,116 @@ and open the template in the editor.
                 if(markermode!=="cross")
                     document.getElementById("btn_"+markermode).classList.add("markermode");
             }
+            
+            async function export_desktop() {
+//                if(!images[0].hasOwnProperty("dzip")) {
+//                    alert("This is a very old dataset.\nPlease contact support in order to get it for desktop tools.");
+//                    return;
+//                }
+                if(images.some(image => image.dzip === "loading")) {
+                    alert("Try again a couple seconds later, filmstrip is still loading.");
+                    return;
+                }
+                const dlg = document.getElementById("dlg_export");
+                dlg.showModal();
+                const prg = document.getElementById("prg");
+                const files = [];
+                const date = new Date;
+                const box = 1024;
+                const total = images.length;
+                let count = 1;
+                const slash = filename.lastIndexOf("/");
+                const dot = filename.lastIndexOf(".");
+                const name = filename.substring(slash + 1, dot > slash ? dot : undefined);
+                const descriptor = {
+                    name,
+//                    target: series.atlas + ".cutlas",
+                    target: series.atlas.includes("WHS") ? "WHS_Rat_v4_39um.cutlas" : "ABA_Mouse_CCFv3_2017_25um.cutlas",
+                    "target-resolution": [atlas.xdim,atlas.ydim,atlas.zdim],
+                    slices: []
+                };
+                let idx = 0;
+                for(const image of images) {
+                    let {filename, snr, width, height, tilesize, overlap, format, base, dzip, maxlevel: level, ouv, markers, anchored} = image;
+                    prg.innerText = `${count} / ${total} ${filename}`;
+                    if(typeof dziporg === "string")
+                        dzip = await netunzip(() => dpurlget(dziporg).then(json => json.url));
+                    while(width > box*2 || height > box*2) {
+                        width = (width + 1) >> 1;
+                        height = (height + 1) >> 1;
+                        level--;
+                    }
+                    const xtiles = Math.ceil(width / tilesize);
+                    const ytiles = Math.ceil(height / tilesize);
+                    const cnv = new OffscreenCanvas(width, height);
+                    const ctx = cnv.getContext("2d");
+                    const loads = [];
+                    for (let x = 0; x < xtiles; x++)
+                        for (let y = 0; y < ytiles; y++)
+                            loads.push(dzip?dzip.get(dzip.entries.get(`${base}${level}/${x}_${y}.${format}`))
+                                    .then(data => new Promise((resolve, reject) => {
+                                        const url=URL.createObjectURL(new Blob([data], {type: "image/"+image.format}));
+                                        let tile = document.createElement("img");
+                                        tile.onload = () => {
+                                            URL.revokeObjectURL(url);
+                                            ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                            resolve();
+                                        };
+                                        tile.src = url;
+                                    }))
+                                :series.bucket?dpurlget(`${base}${level}/${x}_${y}.${format}`)
+                                    .then(json => new Promise((resolve, reject) => {
+                                            let tile = document.createElement("img");
+                                            tile.onerror = reject;
+                                            tile.onload = () => {
+                                                ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                                resolve();
+                                            };
+                                            tile.crossOrigin = "anonymous";
+                                            tile.src = json.url;
+                                        }))
+                                :new Promise((resolve,reject)=>{
+                                    let tile = document.createElement("img");
+                                    tile.onerror = reject;
+                                    tile.onload = () => {
+                                        ctx.drawImage(tile, x * tilesize - (x === 0 ? 0 : overlap), y * tilesize - (y === 0 ? 0 : overlap));
+                                        resolve();
+                                    };
+                                    tile.crossOrigin = "anonymous";
+                                    tile.src = `${oldisv}${base}${level}/${x}_${y}.${format}`;
+                                }));
+                    await Promise.allSettled(loads);
+                    const blob = await cnv.convertToBlob();
+                    const buffer = await blob.arrayBuffer();
+                    filename = filename.match(/(.+?)(?:\.[^.]*$|$)/)[1] + ".png";
+                    files.push({
+                        date,
+                        name: filename,
+                        data: new Uint8Array(buffer)
+                    });
+                    const slice = {filename, nr: snr, width: image.width, height: image.height};
+                    if(image.anchored)
+                        slice.anchoring = image.ouv;
+                    if(series.sections[idx].markers)
+                        slice.markers = series.sections[idx].markers;
+                    descriptor.slices.push(slice);
+                    idx++;
+                    count++;
+                }
+                files.push({
+                    date,
+                    name: name + ".json",
+                    data: new TextEncoder().encode(JSON.stringify(descriptor))
+                });
+                const zip = zipstore(files);
+                const url = URL.createObjectURL(zip);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = name + ".zip";
+                a.click();
+                URL.revokeObjectURL(url);
+                dlg.close();
+            }
         </script>
     </head>
     <body onload="startup()" onmouseup="mup(event);scrollup()" onmousemove="mmove(event);scrollmove(event)">
@@ -1973,25 +2099,40 @@ and open the template in the editor.
             <span id="atlas"></span>
             <hr>
             <div id="bucket">Bucket:
-            <button onclick="save()">Save</button><button onclick="saveas()" id="btn_saveas">Save as...</button><button id="btn_export" onclick="exprt()">Export overlays</button></div>
-            <div class="ctrlrow">
+                <button onclick="save()">Save</button>
+                <button onclick="saveas()" id="btn_saveas">Save as...</button>
+                <button id="btn_export" onclick="exprt()">Export overlays</button>
+                <hr>
+            </div>
+            <div style="display: grid; grid-template-columns: auto auto;">
+                <div>Pan step (&#x25c0;&#x25b6;&#x25b2;&#x25bc;)</div>
+                <div><input id="panstep" type="number" min="0" max="20" step="0.1" value="1">[voxel]</div>
+                <!--<div>Rotate (&#x21b6;/&#x21b7;) step</div>-->
+                <div>Rotate step (<span style="display: inline-block;transform: scale(1,-1);">&#x2b6e;\&#x2b6f;</span>)</div>
+                <div><input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">[degree]</div>
+            </div>
+<!--            <div class="ctrlrow">
                 <select id="modality" oninput="changemodality(event)" disabled>
                     <option>Segmentation</option>
                     <option>Template</option>
                 </select>
                 &#x2194;&#x2195;<input id="panstep" type="number" min="0" max="20" step="0.1" value="1">
-                <!--1f504-->&#x2B6E;<input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">
-            </div>
-            <div style="position: static; display: grid; grid-template-columns: auto auto auto;">
+                1f504&#x2B6E;<input id="rotstep" type="number" min="0" max="20" step="0.1" value="1">
+            </div>-->
+            <div style="display: grid; grid-template-columns: auto auto auto;align-items: center;">
                     Overlay
                     <input id="mainalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawimage()">
                     <input id="mainoutline" type="color" value="#0000FF" oninput="drawimage()">
                     Filmstrip
                     <input id="stripalpha" type="range" min="0" max="100" step="1" value="100" oninput="drawstrip()">
                     <input id="stripoutline" type="color" value="#0000FF" oninput="drawstrip()">
-                    <span id="contrast_head">Contrast</span>
+                    <!--<span id="contrast_head">Contrast</span>-->
                     <!--<input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="imagenavi();drawstrip();">-->
-                    <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="dispatchAll()">
+                <select id="modality" oninput="changemodality(event)" disabled>
+                    <option>Segmentation</option>
+                    <option>Template</option>
+                </select>
+                    <input id="contrast" type="range" min="0" max="255" step="1" value="255" oninput="dispatchAll()" disabled>
             </div>
 <!--            <div class="ctrlrow">
                 Overlay:
@@ -2025,6 +2166,13 @@ and open the template in the editor.
             <input type="number" id="rot3" min="-180" max="180" step="0.1" onchange="docalc()"><br>
             <button onclick="unify()">Apply to all</button><br>
             <button onclick="auxwnd()">Diagrams</button>
+            <hr>
+            <button id="save_desktop_button" onclick="export_desktop()">Save QuickNII/VisuAlign package</button><br>
+            <input id="load_json" type="file" accept="application/json" oninput="load_json(event)" hidden>
+            <button id="load_json_button" onclick="document.getElementById('load_json').click()">Load QuickNII/VisuAlign JSON</button>
+<!--
+            <button commandfor="dlg_load" command="show-modal">Load</button>
+-->
             <div id="log" hidden></div>
         </div>
         <div id="hsiz" class="hsep" onmousedown="hresize(event)"></div>
@@ -2109,6 +2257,27 @@ and open the template in the editor.
                 <li>Press <kbd>Esc</kbd> to make the fixed point marker disappear</li>
             </ul>
             <a href="https://quint-webtools.readthedocs.io/en/latest/WebAlign.html" target="_blank">Documentation</a><br>
+            <a href="cache">Cache</a>
         </div>
+<!--
+        <dialog id="dlg_load" closedby="none">
+            Choose QuickNII/VisuAlign JSON file<br>
+            <input type="file" accept="application/json" oninput="load_json(event)"><br>
+            <br>
+            <b>Transformation</b><br>
+            <input style="/*position:fixed;left:0;right:0;width:auto;*/" type="text" id="json_trf" placeholder="Comma separated list of replacements and deletions, like .png=.dzip,_thumbnail" oninput="transform_json()"><br>
+            <table border="1">
+                <thead>
+                <th>Transformed JSON</th><th>Actual file</th>
+                </thead>
+                <tbody id="json_pairs"></tbody>
+            </table><br>
+            <button id="apply_json" onclick="apply_json()">Apply</button><button commandfor="dlg_load" command="close">Cancel</button>
+        </dialog>
+-->
+        <dialog id="dlg_export" closedby="none">
+            Preparing images, this will take some time<br>
+            <div id="prg"></div>
+        </dialog>
     </body>
 </html>
