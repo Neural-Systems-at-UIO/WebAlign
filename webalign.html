@@ -194,6 +194,7 @@ and open the template in the editor.
 
             let atlas = {xdim: 1, ydim: 1, zdim: 1};
             let series;
+            let saved;
             let images = [];
             let fsw = 0;
             let ready = false;
@@ -211,6 +212,7 @@ and open the template in the editor.
                 resize();
                 const url = await dpurlget(bucket + "/" + filename).then(json => json.url);
                 series = await fetch(url.includes("?") ? url : url + "?" + Date.now()).then(response => response.json());
+                saved = JSON.stringify(series);
                 if (series.hasOwnProperty("mode"))
                     document.getElementById("mode").selectedIndex = series.mode;
 
@@ -1537,6 +1539,7 @@ and open the template in the editor.
                 if (choice.cancel)
                     return;
                 filename = choice.create || choice.pick;
+                saved = false;
                 dosave();
             }
             async function dosave() {
@@ -1564,6 +1567,11 @@ and open the template in the editor.
                     else
                         delete series.sections[i].wwdone;
                 }
+                const json = JSON.stringify(series);
+                if (json === saved) {
+//                    console.log("Nothing to save.");
+                    return;
+                }
                 let upload = await fetch(
                         `https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}/${filename}`, {
                             method: "PUT",
@@ -1582,9 +1590,35 @@ and open the template in the editor.
                     headers: {
                         'Content-Type': 'application/x.webalign'
                     },
-                    body: JSON.stringify(series)
+                    body: json
                 });
+                saved = json;
+//                console.log("Saved.");
             }
+
+            if (args.embedded) {
+                function autosave() {
+                    if (drag || !ready)
+                        return;
+                    dosave();
+                }
+                let timer;
+                function startauto() {
+                    timer = setInterval(autosave, 3000);
+                }
+                document.addEventListener("visibilitychange", ()=>{
+                    if (document.hidden) {
+                        dosave();
+                        clearInterval(timer);
+//                        console.log("Stopped.");
+                    } else {
+                        startauto();
+//                        console.log("Resumed.");
+                    }
+                });
+                startauto();
+            }
+
             function popup(pop) {
                 document.getElementById("cover").hidden = false;
                 document.getElementById("popup").hidden = false;
